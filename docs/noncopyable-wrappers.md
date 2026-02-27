@@ -47,13 +47,25 @@ func makeFileMetadata(
     return MTPOwnedFile(p)
 }
 
-func makeNewFile() -> MTPOwnedFile? {
+func makeUploadMetadata(
+    filename: String,
+    filesize: UInt64,
+    parentId: UInt32,
+    storageId: UInt32
+) -> MTPOwnedFile? {
     guard let p = LIBMTP_new_file_t() else { return nil }
+    p.pointee.filename = strdup(filename)
+    p.pointee.filesize = filesize
+    p.pointee.parent_id = parentId
+    p.pointee.storage_id = storageId
+    p.pointee.filetype = LIBMTP_FILETYPE_UNKNOWN
     return MTPOwnedFile(p)
 }
 ```
 
 `makeFileList` returns the raw pointer (not `MTPOwnedFile`) because the linked list is walked node-by-node — each node becomes an `MTPOwnedFile` inside the loop via its `fileprivate init`. Wrapping the head would imply ownership of the entire list, which is wrong since `destroy_file_t` only frees one node.
+
+`makeUploadMetadata` encapsulates all `pointee` access — callers never touch the C struct directly. The `strdup` for filename ownership transfer is hidden inside the factory.
 
 Linked list walk pattern:
 
@@ -128,7 +140,7 @@ The two private recursive helpers move from `MTPDirectoryListing.swift` to `MTPC
 
 ### `MTPFileOperations.swift`
 
-**`uploadFile`**: `LIBMTP_new_file_t` + `defer { destroy }` → `makeNewFile()`
+**`uploadFile`**: `LIBMTP_new_file_t` + `defer { destroy }` + 5 lines of `pointee` setup → `makeUploadMetadata(filename:filesize:parentId:storageId:)`
 
 **`fileInfo`**: `LIBMTP_Get_Filemetadata` + `defer { destroy }` → `makeFileMetadata(device:id:)`
 
