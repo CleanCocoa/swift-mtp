@@ -148,7 +148,7 @@ struct HardwareTests {
         let devices = try mtpDetectDevices()
         var raw = try #require(devices.first)
         let device = try raw.open()
-        let entries = try device.listDirectory()
+        let entries = try device.contents()
         #expect(!entries.isEmpty)
         for entry in entries {
             #expect(!entry.name.isEmpty)

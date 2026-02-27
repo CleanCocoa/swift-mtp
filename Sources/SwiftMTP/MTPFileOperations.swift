@@ -2,8 +2,8 @@ import Clibmtp
 import Foundation
 
 extension MTPDevice {
-    public func downloadFile(
-        id: ObjectID,
+    public func download(
+        _ id: ObjectID,
         to localPath: String,
         progress: ProgressHandler? = nil
     ) throws(MTPError) {
@@ -20,11 +20,11 @@ extension MTPDevice {
     }
 
     @discardableResult
-    public func uploadFile(
+    public func upload(
         from localPath: String,
         to parent: Folder,
         storage: StorageID,
-        filename: String,
+        as filename: String,
         progress: ProgressHandler? = nil
     ) throws(MTPError) -> ObjectID {
         let attrs = try { () throws(MTPError) -> [FileAttributeKey: Any] in
@@ -57,7 +57,7 @@ extension MTPDevice {
         return ObjectID(rawValue: upload.itemId)
     }
 
-    public func fileInfo(id: ObjectID) throws(MTPError) -> MTPFileInfo {
+    public func info(for id: ObjectID) throws(MTPError) -> MTPFileInfo {
         guard let handle = FileHandle(device: raw, id: id.rawValue) else {
             _ = drainErrorStack(raw)
             throw MTPError.objectNotFound(id: id)
@@ -65,7 +65,7 @@ extension MTPDevice {
         return handle.toFileInfo()
     }
 
-    public func deleteObject(id: ObjectID) throws(MTPError) {
+    public func delete(_ id: ObjectID) throws(MTPError) {
         let ret = LIBMTP_Delete_Object(raw, id.rawValue)
         if ret != 0 {
             let message = drainErrorStack(raw)
@@ -73,7 +73,7 @@ extension MTPDevice {
         }
     }
 
-    public func createDirectory(name: String, in parent: Folder, storage: StorageID) throws(MTPError) -> Folder {
+    public func makeDirectory(named name: String, in parent: Folder, storage: StorageID) throws(MTPError) -> Folder {
         let folderId = LIBMTP_Create_Folder(raw, strdup(name), parent.id.rawValue, storage.rawValue)
         if folderId == 0 {
             let message = drainErrorStack(raw)
@@ -82,7 +82,7 @@ extension MTPDevice {
         return Folder(id: ObjectID(rawValue: folderId))
     }
 
-    public func moveObject(id: ObjectID, to parent: Folder, storage: StorageID) throws(MTPError) {
+    public func move(_ id: ObjectID, to parent: Folder, storage: StorageID) throws(MTPError) {
         let ret = LIBMTP_Move_Object(raw, id.rawValue, storage.rawValue, parent.id.rawValue)
         if ret != 0 {
             let message = drainErrorStack(raw)
@@ -93,19 +93,16 @@ extension MTPDevice {
         }
     }
 
-    public func renameFile(id: ObjectID, newName: String) throws(MTPError) {
-        guard let handle = FileHandle(device: raw, id: id.rawValue) else {
-            _ = drainErrorStack(raw)
-            throw MTPError.objectNotFound(id: id)
+    public func rename(_ id: ObjectID, to newName: String) throws(MTPError) {
+        if let handle = FileHandle(device: raw, id: id.rawValue) {
+            let ret = handle.rename(device: raw, to: newName)
+            if ret != 0 {
+                let message = drainErrorStack(raw)
+                throw MTPError.operationFailed(message)
+            }
+            return
         }
-        let ret = handle.rename(device: raw, to: newName)
-        if ret != 0 {
-            let message = drainErrorStack(raw)
-            throw MTPError.operationFailed(message)
-        }
-    }
 
-    public func renameFolder(id: ObjectID, newName: String) throws(MTPError) {
         guard let tree = FolderTree(device: raw) else {
             _ = drainErrorStack(raw)
             throw MTPError.objectNotFound(id: id)

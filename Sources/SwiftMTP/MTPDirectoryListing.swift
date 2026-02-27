@@ -1,9 +1,9 @@
 import Clibmtp
 
 extension MTPDevice {
-    public func listDirectory(
-        storage: StorageID = .all,
-        in parent: Folder = .root
+    public func contents(
+        of parent: Folder = .root,
+        storage: StorageID = .all
     ) throws(MTPError) -> [MTPFileInfo] {
         let storageId = storage.rawValue
         let parentId = parent.id.rawValue
