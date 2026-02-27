@@ -26,71 +26,56 @@ targets: [
 ]
 ```
 
-## Overview
-
-### Discovery and Lifecycle
+## Usage
 
 ```swift
 import SwiftMTP
 
 mtpInitialize()
-let rawDevices = try mtpDetectDevices()  // → [MTPRawDevice]
 
+// discover and open the first device
+let raw = try mtpDetectDevices().first!
 let device = try MTPDevice(busLocation: raw.busLocation, devnum: raw.devnum)
-// device is released automatically on deinit
-```
 
-`MTPDevice` opens the device in uncached mode and populates storage on init. All device operations are instance methods.
+// pick a storage
+let storage = device.storageInfo().first!
 
-### Storage, Listing, and Path Resolution
-
-```swift
-let storages = device.storageInfo()  // → [MTPStorageInfo]
-
-let entries = try device.listDirectory(storageId: 0, parentId: 0)  // → [MTPFileInfo]
-let file = try device.resolvePath("/Documents/note.pdf")           // → MTPFileInfo?
-```
-
-Directory listing merges the folder tree with the file list to deduplicate entries — folders appear exactly once with correct type information.
-
-### File Operations
-
-```swift
-try device.downloadFile(id: fileId, to: "/tmp/note.pdf") { sent, total in
-    return true  // return false to cancel
+// list root and find a file by name
+let root = try device.listDirectory(storageId: storage.id, parentId: 0)
+for entry in root {
+    print(entry.name, entry.isDirectory ? "dir" : "\(entry.size) bytes")
 }
 
+// resolve a path directly
+if let note = try device.resolvePath("/Documents/note.pdf", storageId: storage.id) {
+    try device.downloadFile(id: note.id, to: "/tmp/note.pdf") { sent, total in
+        print("\(sent)/\(total)")
+        return true  // return false to cancel
+    }
+}
+
+// upload into a new folder
+let folderId = try device.createDirectory(name: "Backup", parentId: 0, storageId: storage.id)
 let newId = try device.uploadFile(
-    from: "/tmp/upload.pdf",
-    parentId: parentId,
-    storageId: storageId,
-    filename: "upload.pdf"
+    from: "/tmp/report.pdf",
+    parentId: folderId,
+    storageId: storage.id,
+    filename: "report.pdf"
 )
 
-let metadata = try device.fileInfo(id: newId)  // → MTPFileInfo
-```
-
-### Mutations
-
-```swift
-try device.deleteObject(id: objectId)
-let folderId = try device.createDirectory(name: "New Folder", parentId: 0, storageId: storageId)
-try device.moveObject(id: objectId, toParentId: folderId, storageId: storageId)
-try device.renameFile(id: fileId, newName: "renamed.pdf")
-try device.renameFolder(id: folderId, newName: "Renamed Folder")
-```
-
-### Capabilities
-
-```swift
+// rename, move, delete
+try device.renameFile(id: newId, newName: "final-report.pdf")
 if device.supportsCapability(.moveObject) {
-    try device.moveObject(id: id, toParentId: dest, storageId: sid)
+    try device.moveObject(id: newId, toParentId: 0, storageId: storage.id)
 }
+try device.deleteObject(id: folderId)
 ```
+
+`MTPDevice` opens the device in uncached mode and populates storage on init. All device operations are instance methods. The device is released automatically on deinit.
 
 ### Error Handling
 
-All fallible operations use typed throws:
+All fallible operations use typed throws (`throws(MTPError)`):
 
 ```swift
 do throws(MTPError) {
