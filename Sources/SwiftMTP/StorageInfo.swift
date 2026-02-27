@@ -13,6 +13,13 @@ public struct StorageInfo: Sendable {
 		self.freeSpace = freeSpace
 	}
 
+	public var usedSpace: UInt64 { maxCapacity - freeSpace }
+
+	public var percentFull: Double {
+		guard maxCapacity > 0 else { return 0.0 }
+		return Double(usedSpace) / Double(maxCapacity)
+	}
+
 	init(cStorage: UnsafePointer<LIBMTP_devicestorage_struct>) {
 		let s = cStorage.pointee
 		id = StorageID(rawValue: s.id)
