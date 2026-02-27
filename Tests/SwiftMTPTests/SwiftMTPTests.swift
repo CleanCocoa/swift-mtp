@@ -27,7 +27,7 @@ import Clibmtp
     let e1 = MTPError.noDeviceAttached
     let e2 = MTPError.connectionFailed(bus: 3, devnum: 7)
     let e3 = MTPError.storageFull
-    let e4 = MTPError.objectNotFound(id: 42)
+    let e4 = MTPError.objectNotFound(id: ObjectID(rawValue: 42))
     let e5 = MTPError.operationFailed("bad op")
     let e6 = MTPError.pathNotFound("/foo/bar")
     let e7 = MTPError.moveNotSupported
@@ -38,8 +38,8 @@ import Clibmtp
     #expect(e2 != .connectionFailed(bus: 3, devnum: 8))
     #expect(e2 != .connectionFailed(bus: 4, devnum: 7))
     #expect(e3 == .storageFull)
-    #expect(e4 == .objectNotFound(id: 42))
-    #expect(e4 != .objectNotFound(id: 99))
+    #expect(e4 == .objectNotFound(id: ObjectID(rawValue: 42)))
+    #expect(e4 != .objectNotFound(id: ObjectID(rawValue: 99)))
     #expect(e5 == .operationFailed("bad op"))
     #expect(e5 != .operationFailed("other"))
     #expect(e6 == .pathNotFound("/foo/bar"))

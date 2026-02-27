@@ -4,7 +4,7 @@ public enum MTPError: Error, Equatable, Sendable {
     case noDeviceAttached
     case connectionFailed(bus: UInt32, devnum: UInt8)
     case storageFull
-    case objectNotFound(id: UInt32)
+    case objectNotFound(id: ObjectID)
     case operationFailed(String)
     case pathNotFound(String)
     case moveNotSupported

@@ -60,7 +60,7 @@ extension MTPDevice {
     public func fileInfo(id: UInt32) throws(MTPError) -> MTPFileInfo {
         guard let handle = FileHandle(device: raw, id: id) else {
             _ = drainErrorStack(raw)
-            throw MTPError.objectNotFound(id: id)
+            throw MTPError.objectNotFound(id: ObjectID(rawValue: id))
         }
         return handle.toFileInfo()
     }
@@ -96,7 +96,7 @@ extension MTPDevice {
     public func renameFile(id: UInt32, newName: String) throws(MTPError) {
         guard let handle = FileHandle(device: raw, id: id) else {
             _ = drainErrorStack(raw)
-            throw MTPError.objectNotFound(id: id)
+            throw MTPError.objectNotFound(id: ObjectID(rawValue: id))
         }
         let ret = handle.rename(device: raw, to: newName)
         if ret != 0 {
@@ -108,10 +108,10 @@ extension MTPDevice {
     public func renameFolder(id: UInt32, newName: String) throws(MTPError) {
         guard let tree = FolderTree(device: raw) else {
             _ = drainErrorStack(raw)
-            throw MTPError.objectNotFound(id: id)
+            throw MTPError.objectNotFound(id: ObjectID(rawValue: id))
         }
         guard let ret = tree.rename(device: raw, folderId: id, to: newName) else {
-            throw MTPError.objectNotFound(id: id)
+            throw MTPError.objectNotFound(id: ObjectID(rawValue: id))
         }
         if ret != 0 {
             let message = drainErrorStack(raw)
