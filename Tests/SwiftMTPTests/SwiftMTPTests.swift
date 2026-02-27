@@ -136,8 +136,8 @@ struct HardwareTests {
     @Test func `open device and read properties`() throws {
         mtpInitialize()
         let devices = try mtpDetectDevices()
-        let raw = try #require(devices.first)
-        let device = try MTPDevice(busLocation: raw.busLocation, devnum: raw.devnum)
+        var raw = try #require(devices.first)
+        let device = try raw.open()
         #expect(device.manufacturerName != nil || device.modelName != nil || device.serialNumber != nil || device.friendlyName != nil || device.deviceVersion != nil)
         let storages = device.storageInfo()
         #expect(!storages.isEmpty)
@@ -146,8 +146,8 @@ struct HardwareTests {
     @Test func `list root directory`() throws {
         mtpInitialize()
         let devices = try mtpDetectDevices()
-        let raw = try #require(devices.first)
-        let device = try MTPDevice(busLocation: raw.busLocation, devnum: raw.devnum)
+        var raw = try #require(devices.first)
+        let device = try raw.open()
         let entries = try device.listDirectory()
         #expect(!entries.isEmpty)
         for entry in entries {

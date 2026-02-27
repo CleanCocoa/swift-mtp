@@ -1,5 +1,5 @@
 import Foundation
-import Clibmtp
+@preconcurrency import Clibmtp
 
 public struct ObjectID: RawRepresentable, Hashable, Sendable, CustomStringConvertible {
     public let rawValue: UInt32
@@ -28,6 +28,7 @@ public struct MTPRawDevice: Sendable {
     public let vendorId: UInt16
     public let product: String
     public let productId: UInt16
+    private nonisolated(unsafe) var cRaw: LIBMTP_raw_device_t
 
     public init(busLocation: UInt32, devnum: UInt8, vendor: String, vendorId: UInt16, product: String, productId: UInt16) {
         self.busLocation = busLocation
@@ -36,6 +37,9 @@ public struct MTPRawDevice: Sendable {
         self.vendorId = vendorId
         self.product = product
         self.productId = productId
+        self.cRaw = LIBMTP_raw_device_t()
+        self.cRaw.bus_location = busLocation
+        self.cRaw.devnum = devnum
     }
 
     init(cRawDevice: UnsafePointer<LIBMTP_raw_device_struct>) {
@@ -46,6 +50,15 @@ public struct MTPRawDevice: Sendable {
         vendorId = raw.device_entry.vendor_id
         product = raw.device_entry.product.map { String(cString: $0) } ?? ""
         productId = raw.device_entry.product_id
+        cRaw = raw
+    }
+
+    public mutating func open() throws(MTPError) -> MTPDevice {
+        guard let device = LIBMTP_Open_Raw_Device_Uncached(&cRaw) else {
+            throw .connectionFailed(bus: busLocation, devnum: devnum)
+        }
+        LIBMTP_Get_Storage(device, 0)
+        return MTPDevice(raw: device)
     }
 }
 

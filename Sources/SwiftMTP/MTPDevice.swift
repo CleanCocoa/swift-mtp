@@ -11,6 +11,10 @@ public enum MTPDeviceCapability: Sendable {
 public final class MTPDevice {
     let raw: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>
 
+    init(raw device: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>) {
+        raw = device
+    }
+
     public init(busLocation: UInt32, devnum: UInt8) throws(MTPError) {
         var rawDevices: UnsafeMutablePointer<LIBMTP_raw_device_t>? = nil
         var numDevices: CInt = 0
