@@ -93,6 +93,25 @@ extension MTPDevice {
         }
     }
 
+    @discardableResult
+    public func upload(
+        from localPath: String,
+        to parent: Folder,
+        storage: MTPStorageInfo,
+        as filename: String,
+        progress: ProgressHandler? = nil
+    ) throws(MTPError) -> ObjectID {
+        try upload(from: localPath, to: parent, storage: storage.id, as: filename, progress: progress)
+    }
+
+    public func makeDirectory(named name: String, in parent: Folder, storage: MTPStorageInfo) throws(MTPError) -> Folder {
+        try makeDirectory(named: name, in: parent, storage: storage.id)
+    }
+
+    public func move(_ id: ObjectID, to parent: Folder, storage: MTPStorageInfo) throws(MTPError) {
+        try move(id, to: parent, storage: storage.id)
+    }
+
     public func rename(_ id: ObjectID, to newName: String) throws(MTPError) {
         if let handle = FileHandle(device: raw, id: id.rawValue) {
             let ret = handle.rename(device: raw, to: newName)

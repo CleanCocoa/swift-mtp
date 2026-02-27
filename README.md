@@ -47,7 +47,7 @@ for entry in root {
 }
 
 // resolve a path directly
-if let note = try device.resolvePath("/Documents/note.pdf", storage: storage.id) {
+if let note = try device.resolvePath("/Documents/note.pdf", storage: storage) {
     try device.download(note.id, to: "/tmp/note.pdf") { sent, total in
         print("\(sent)/\(total)")
         return true  // return false to cancel
@@ -55,18 +55,18 @@ if let note = try device.resolvePath("/Documents/note.pdf", storage: storage.id)
 }
 
 // upload into a new folder
-let backup = try device.makeDirectory(named: "Backup", in: .root, storage: storage.id)
+let backup = try device.makeDirectory(named: "Backup", in: .root, storage: storage)
 let newId = try device.upload(
     from: "/tmp/report.pdf",
     to: backup,
-    storage: storage.id,
+    storage: storage,
     as: "report.pdf"
 )
 
 // rename, move, delete
 try device.rename(newId, to: "final-report.pdf")
 if device.supportsCapability(.moveObject) {
-    try device.move(newId, to: .root, storage: storage.id)
+    try device.move(newId, to: .root, storage: storage)
 }
 try device.delete(backup.id)
 ```

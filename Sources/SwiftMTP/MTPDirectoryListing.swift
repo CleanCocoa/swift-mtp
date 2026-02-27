@@ -45,6 +45,17 @@ extension MTPDevice {
         return results
     }
 
+    public func contents(
+        of parent: Folder = .root,
+        storage: MTPStorageInfo
+    ) throws(MTPError) -> [MTPFileInfo] {
+        try contents(of: parent, storage: storage.id)
+    }
+
+    public func resolvePath(_ path: String, storage: MTPStorageInfo) throws(MTPError) -> MTPFileInfo? {
+        try resolvePath(path, storage: storage.id)
+    }
+
     public func resolvePath(_ path: String, storage: StorageID = .all) throws(MTPError) -> MTPFileInfo? {
         let storageId = storage.rawValue
         let components = path.split(separator: "/").map(String.init)
