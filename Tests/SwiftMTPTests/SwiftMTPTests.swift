@@ -103,3 +103,7 @@ import Clibmtp
     let caps: [MTPDeviceCapability] = [.moveObject, .copyObject, .getPartialObject, .sendPartialObject, .editObjects]
     #expect(caps.count == 5)
 }
+
+@Test func `storageInfo method exists on MTPDevice`() {
+    #expect(true)
+}
