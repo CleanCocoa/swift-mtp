@@ -1,6 +1,6 @@
 import Clibmtp
 
-typealias ProgressHandler = (UInt64, UInt64) -> Bool
+public typealias ProgressHandler = (UInt64, UInt64) -> Bool
 
 func withProgressCallback<R>(
     _ handler: ProgressHandler?,

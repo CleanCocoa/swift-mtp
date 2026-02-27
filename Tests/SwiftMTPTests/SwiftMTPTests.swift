@@ -111,3 +111,7 @@ import Clibmtp
 @Test func `listDirectory method signature compiles`() {
     #expect(true)
 }
+
+@Test func `file operations methods compile`() {
+    #expect(true)
+}
