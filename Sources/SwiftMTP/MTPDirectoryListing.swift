@@ -65,8 +65,8 @@ extension MTPDevice {
 
             while let file = fileList {
                 let next = file.pointee.next
+                defer { LIBMTP_destroy_file_t(file) }
                 let info = MTPFileInfo(cFile: file)
-                LIBMTP_destroy_file_t(file)
 
                 if found == nil && info.name == component {
                     found = info

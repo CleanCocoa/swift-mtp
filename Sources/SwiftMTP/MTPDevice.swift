@@ -15,8 +15,8 @@ public final class MTPDevice {
         var rawDevices: UnsafeMutablePointer<LIBMTP_raw_device_t>? = nil
         var numDevices: CInt = 0
         let result = LIBMTP_Detect_Raw_Devices(&rawDevices, &numDevices)
+        defer { free(rawDevices) }
         if result == LIBMTP_ERROR_NO_DEVICE_ATTACHED {
-            free(rawDevices)
             throw .noDeviceAttached
         }
         var matchIndex: Int? = nil
@@ -27,14 +27,11 @@ public final class MTPDevice {
             }
         }
         guard let idx = matchIndex else {
-            free(rawDevices)
             throw .noDeviceAttached
         }
         guard let device = LIBMTP_Open_Raw_Device_Uncached(&rawDevices![idx]) else {
-            free(rawDevices)
             throw .connectionFailed(bus: busLocation, devnum: devnum)
         }
-        free(rawDevices)
         LIBMTP_Get_Storage(device, 0)
         raw = device
     }
