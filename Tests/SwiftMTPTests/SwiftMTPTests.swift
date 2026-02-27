@@ -29,7 +29,7 @@ import Testing
 
 @Test func `MTPError cases with associated values`() {
 	let e1 = MTPError.noDeviceAttached
-	let e2 = MTPError.connectionFailed(bus: BusLocation(rawValue: 3), devnum: 7)
+	let e2 = MTPError.connectionFailed(bus: BusLocation(rawValue: 3), devnum: DeviceNumber(rawValue: 7))
 	let e3 = MTPError.storageFull
 	let e4 = MTPError.objectNotFound(id: ObjectID(rawValue: 42))
 	let e5 = MTPError.operationFailed("bad op")
@@ -39,9 +39,9 @@ import Testing
 	let e9 = MTPError.deviceDisconnected
 
 	#expect(e1 == .noDeviceAttached)
-	#expect(e2 == .connectionFailed(bus: BusLocation(rawValue: 3), devnum: 7))
-	#expect(e2 != .connectionFailed(bus: BusLocation(rawValue: 3), devnum: 8))
-	#expect(e2 != .connectionFailed(bus: BusLocation(rawValue: 4), devnum: 7))
+	#expect(e2 == .connectionFailed(bus: BusLocation(rawValue: 3), devnum: DeviceNumber(rawValue: 7)))
+	#expect(e2 != .connectionFailed(bus: BusLocation(rawValue: 3), devnum: DeviceNumber(rawValue: 8)))
+	#expect(e2 != .connectionFailed(bus: BusLocation(rawValue: 4), devnum: DeviceNumber(rawValue: 7)))
 	#expect(e3 == .storageFull)
 	#expect(e4 == .objectNotFound(id: ObjectID(rawValue: 42)))
 	#expect(e4 != .objectNotFound(id: ObjectID(rawValue: 99)))
@@ -57,14 +57,14 @@ import Testing
 @Test func `RawDevice stores properties`() {
 	let dev = RawDevice(
 		busLocation: BusLocation(rawValue: 1),
-		devnum: 2,
+		devnum: DeviceNumber(rawValue: 2),
 		vendor: "Acme",
 		vendorId: VendorID(rawValue: 0x1234),
 		product: "Widget",
 		productId: ProductID(rawValue: 0x5678)
 	)
 	#expect(dev.busLocation == BusLocation(rawValue: 1))
-	#expect(dev.devnum == 2)
+	#expect(dev.devnum == DeviceNumber(rawValue: 2))
 	#expect(dev.vendor == "Acme")
 	#expect(dev.vendorId == VendorID(rawValue: 0x1234))
 	#expect(dev.product == "Widget")
@@ -298,6 +298,15 @@ import Testing
 
 @Test func `BusLocation is Sendable`() {
 	let _: any Sendable = BusLocation(rawValue: 1)
+}
+
+@Test func `DeviceNumber round-trips through rawValue`() {
+	let dn = DeviceNumber(rawValue: 3)
+	#expect(DeviceNumber(rawValue: dn.rawValue) == dn)
+}
+
+@Test func `DeviceNumber description`() {
+	#expect(DeviceNumber(rawValue: 5).description == "DeviceNumber(5)")
 }
 
 @Test func `VendorID round-trips through rawValue`() {

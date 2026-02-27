@@ -2,7 +2,7 @@
 
 public struct RawDevice: Sendable {
 	public let busLocation: BusLocation
-	public let devnum: UInt8
+	public let devnum: DeviceNumber
 	public let vendor: String
 	public let vendorId: VendorID
 	public let product: String
@@ -11,7 +11,7 @@ public struct RawDevice: Sendable {
 
 	public init(
 		busLocation: BusLocation,
-		devnum: UInt8,
+		devnum: DeviceNumber,
 		vendor: String,
 		vendorId: VendorID,
 		product: String,
@@ -25,13 +25,13 @@ public struct RawDevice: Sendable {
 		self.productId = productId
 		self.cRaw = LIBMTP_raw_device_t()
 		self.cRaw.bus_location = busLocation.rawValue
-		self.cRaw.devnum = devnum
+		self.cRaw.devnum = devnum.rawValue
 	}
 
 	init(cRawDevice: UnsafePointer<LIBMTP_raw_device_struct>) {
 		let raw = cRawDevice.pointee
 		busLocation = BusLocation(rawValue: raw.bus_location)
-		devnum = raw.devnum
+		devnum = DeviceNumber(rawValue: raw.devnum)
 		vendor = raw.device_entry.vendor.map { String(cString: $0) } ?? ""
 		vendorId = VendorID(rawValue: raw.device_entry.vendor_id)
 		product = raw.device_entry.product.map { String(cString: $0) } ?? ""

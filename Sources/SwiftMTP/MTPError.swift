@@ -2,7 +2,7 @@ import Clibmtp
 
 public enum MTPError: Error, Equatable, Sendable {
 	case noDeviceAttached
-	case connectionFailed(bus: BusLocation, devnum: UInt8)
+	case connectionFailed(bus: BusLocation, devnum: DeviceNumber)
 	case storageFull
 	case objectNotFound(id: ObjectID)
 	case operationFailed(String)
