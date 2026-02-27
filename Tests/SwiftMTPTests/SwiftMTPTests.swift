@@ -4,38 +4,51 @@ import Foundation
 import Clibmtp
 
 @Test func `swift build imports Clibmtp`() {
-    #expect(swiftMTPVersion.isEmpty == false)
+    #expect(!swiftMTPVersion.isEmpty)
 }
 
-@Test func `MTPError conforms to Equatable and Sendable`() {
-    let a: MTPError = .noDeviceAttached
-    let b: MTPError = .noDeviceAttached
-    #expect(a == b)
+@Test func `MTPError is Equatable`() {
+    #expect(MTPError.noDeviceAttached == .noDeviceAttached)
+    #expect(MTPError.storageFull == .storageFull)
+    #expect(MTPError.moveNotSupported == .moveNotSupported)
+    #expect(MTPError.cancelled == .cancelled)
+    #expect(MTPError.noDeviceAttached != .storageFull)
+    #expect(MTPError.moveNotSupported != .cancelled)
+}
 
-    let c: MTPError = .connectionFailed(bus: 1, devnum: 2)
-    let d: MTPError = .connectionFailed(bus: 1, devnum: 2)
-    #expect(c == d)
-    #expect(c != a)
-
+@Test func `MTPError is Sendable`() {
+    let _: any Sendable = MTPError.noDeviceAttached
     let _: any Sendable = MTPError.storageFull
+    let _: any Sendable = MTPError.moveNotSupported
+    let _: any Sendable = MTPError.cancelled
 }
 
-@Test func `MTPError cases construct correctly`() {
-    let e1: MTPError = .objectNotFound(id: 42)
-    let e2: MTPError = .operationFailed("bad op")
-    let e3: MTPError = .pathNotFound("/foo/bar")
-    let e4: MTPError = .moveNotSupported
-    let e5: MTPError = .cancelled
+@Test func `MTPError cases with associated values`() {
+    let e1 = MTPError.noDeviceAttached
+    let e2 = MTPError.connectionFailed(bus: 3, devnum: 7)
+    let e3 = MTPError.storageFull
+    let e4 = MTPError.objectNotFound(id: 42)
+    let e5 = MTPError.operationFailed("bad op")
+    let e6 = MTPError.pathNotFound("/foo/bar")
+    let e7 = MTPError.moveNotSupported
+    let e8 = MTPError.cancelled
 
-    #expect(e1 == .objectNotFound(id: 42))
-    #expect(e1 != .objectNotFound(id: 99))
-    #expect(e2 == .operationFailed("bad op"))
-    #expect(e3 == .pathNotFound("/foo/bar"))
-    #expect(e4 == .moveNotSupported)
-    #expect(e5 == .cancelled)
+    #expect(e1 == .noDeviceAttached)
+    #expect(e2 == .connectionFailed(bus: 3, devnum: 7))
+    #expect(e2 != .connectionFailed(bus: 3, devnum: 8))
+    #expect(e2 != .connectionFailed(bus: 4, devnum: 7))
+    #expect(e3 == .storageFull)
+    #expect(e4 == .objectNotFound(id: 42))
+    #expect(e4 != .objectNotFound(id: 99))
+    #expect(e5 == .operationFailed("bad op"))
+    #expect(e5 != .operationFailed("other"))
+    #expect(e6 == .pathNotFound("/foo/bar"))
+    #expect(e6 != .pathNotFound("/baz"))
+    #expect(e7 == .moveNotSupported)
+    #expect(e8 == .cancelled)
 }
 
-@Test func `MTPRawDevice stores device properties`() {
+@Test func `MTPRawDevice stores properties`() {
     let dev = MTPRawDevice(busLocation: 1, devnum: 2, vendor: "Acme", vendorId: 0x1234, product: "Widget", productId: 0x5678)
     #expect(dev.busLocation == 1)
     #expect(dev.devnum == 2)
@@ -46,25 +59,29 @@ import Clibmtp
 }
 
 @Test func `MTPFileInfo stores file properties`() {
-    let info = MTPFileInfo(id: 1, parentId: 0, storageId: 100, name: "test.txt", size: 1024, modificationDate: Date(timeIntervalSince1970: 1000), isDirectory: false)
+    let date = Date(timeIntervalSince1970: 1000)
+    let info = MTPFileInfo(id: 1, parentId: 0, storageId: 100, name: "test.txt", size: 1024, modificationDate: date, isDirectory: false)
     #expect(info.id == 1)
     #expect(info.parentId == 0)
     #expect(info.storageId == 100)
     #expect(info.name == "test.txt")
     #expect(info.size == 1024)
-    #expect(info.modificationDate == Date(timeIntervalSince1970: 1000))
+    #expect(info.modificationDate == date)
     #expect(info.isDirectory == false)
 }
 
 @Test func `MTPFileInfo stores directory properties`() {
     let dir = MTPFileInfo(id: 5, parentId: 0, storageId: 200, name: "Photos", size: 0, modificationDate: .distantPast, isDirectory: true)
     #expect(dir.id == 5)
+    #expect(dir.parentId == 0)
+    #expect(dir.storageId == 200)
     #expect(dir.name == "Photos")
-    #expect(dir.isDirectory == true)
     #expect(dir.size == 0)
+    #expect(dir.modificationDate == .distantPast)
+    #expect(dir.isDirectory == true)
 }
 
-@Test func `MTPStorageInfo stores storage properties`() {
+@Test func `MTPStorageInfo stores properties`() {
     let storage = MTPStorageInfo(id: 0xABCD, description: "Internal Storage", maxCapacity: 64_000_000_000, freeSpace: 32_000_000_000)
     #expect(storage.id == 0xABCD)
     #expect(storage.description == "Internal Storage")
@@ -72,54 +89,63 @@ import Clibmtp
     #expect(storage.freeSpace == 32_000_000_000)
 }
 
-@Test func `withProgressCallback passes nil for nil handler`() {
+@Test func `MTPDeviceCapability has all cases`() {
+    let caps: [MTPDeviceCapability] = [.moveObject, .copyObject, .getPartialObject, .sendPartialObject, .editObjects]
+    #expect(caps.count == 5)
+}
+
+@Test func `mtpInitialize is idempotent`() {
+    mtpInitialize()
+    mtpInitialize()
+}
+
+@Test func `mtpDetectDevices returns empty without device`() throws {
+    mtpInitialize()
+    let devices = try mtpDetectDevices()
+    #expect(devices.isEmpty)
+}
+
+@Test func `withProgressCallback nil handler passes nil`() {
     withProgressCallback(nil) { callback, data in
         #expect(callback == nil)
         #expect(data == nil)
     }
 }
 
-@Test func `withProgressCallback provides function pointer for non-nil handler`() {
-    let handler: ProgressHandler = { sent, total in
-        return true
-    }
+@Test func `withProgressCallback non-nil handler provides pointers`() {
+    let handler: ProgressHandler = { _, _ in true }
     withProgressCallback(handler) { callback, data in
         #expect(callback != nil)
         #expect(data != nil)
     }
 }
 
-@Test func `mtpInitialize succeeds`() {
-    mtpInitialize()
-}
+let deviceConnected = ProcessInfo.processInfo.environment["MTP_DEVICE_CONNECTED"] == "1"
 
-@Test func `mtpDetectDevices returns empty array without device`() throws {
+@Test(.enabled(if: deviceConnected, "Skipping: no MTP device connected"))
+func `detect devices finds at least one`() throws {
     mtpInitialize()
     let devices = try mtpDetectDevices()
-    #expect(devices.isEmpty)
+    #expect(!devices.isEmpty)
 }
 
-@Test func `MTPDeviceCapability enum cases exist`() {
-    let caps: [MTPDeviceCapability] = [.moveObject, .copyObject, .getPartialObject, .sendPartialObject, .editObjects]
-    #expect(caps.count == 5)
+@Test(.enabled(if: deviceConnected, "Skipping: no MTP device connected"))
+func `open device and read properties`() throws {
+    mtpInitialize()
+    let devices = try mtpDetectDevices()
+    let raw = try #require(devices.first)
+    let device = try MTPDevice(busLocation: raw.busLocation, devnum: raw.devnum)
+    #expect(device.manufacturerName != nil || device.modelName != nil || device.serialNumber != nil || device.friendlyName != nil || device.deviceVersion != nil)
 }
 
-@Test func `storageInfo method exists on MTPDevice`() {
-    #expect(true)
-}
-
-@Test func `listDirectory method signature compiles`() {
-    #expect(true)
-}
-
-@Test func `file operations methods compile`() {
-    #expect(true)
-}
-
-@Test func `mutation operations methods compile`() {
-    #expect(true)
-}
-
-@Test func `resolvePath method signature compiles`() {
-    #expect(true)
+@Test(.enabled(if: deviceConnected, "Skipping: no MTP device connected"))
+func `list root directory`() throws {
+    mtpInitialize()
+    let devices = try mtpDetectDevices()
+    let raw = try #require(devices.first)
+    let device = try MTPDevice(busLocation: raw.busLocation, devnum: raw.devnum)
+    let storages = device.storageInfo()
+    let storage = try #require(storages.first)
+    let entries = try device.listDirectory(storageId: storage.id, parentId: 0xFFFFFFFF)
+    #expect(entries.count >= 0)
 }
