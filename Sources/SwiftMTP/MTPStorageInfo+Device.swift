@@ -10,4 +10,6 @@ extension MTPDevice {
         }
         return result
     }
+
+    public var defaultStorage: MTPStorageInfo? { storageInfo().first }
 }
