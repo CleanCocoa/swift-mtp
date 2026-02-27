@@ -1,0 +1,61 @@
+import Clibmtp
+
+struct FolderTree: ~Copyable {
+	private let root: UnsafeMutablePointer<LIBMTP_folder_struct>
+
+	init?(device: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>) {
+		guard let p = LIBMTP_Get_Folder_List(device) else { return nil }
+		self.root = p
+	}
+
+	deinit { LIBMTP_destroy_folder_t(root) }
+
+	func collectAllFolderIds(into ids: inout Set<UInt32>) {
+		_collectAllFolderIds(root, into: &ids)
+	}
+
+	func collectChildFolders(
+		parentId: UInt32,
+		results: inout [FileInfo],
+		synthIds: inout Set<UInt32>
+	) {
+		_collectChildFolders(root, parentId: parentId, results: &results, synthIds: &synthIds)
+	}
+
+	func rename(
+		device: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>,
+		folderId: UInt32,
+		to newName: String
+	) -> CInt? {
+		guard let folder = LIBMTP_Find_Folder(root, folderId) else { return nil }
+		return LIBMTP_Set_Folder_Name(device, folder, newName)
+	}
+}
+
+private func _collectAllFolderIds(_ folder: UnsafeMutablePointer<LIBMTP_folder_struct>, into ids: inout Set<UInt32>) {
+	ids.insert(folder.pointee.folder_id)
+	if let child = folder.pointee.child {
+		_collectAllFolderIds(child, into: &ids)
+	}
+	if let sibling = folder.pointee.sibling {
+		_collectAllFolderIds(sibling, into: &ids)
+	}
+}
+
+private func _collectChildFolders(
+	_ folder: UnsafeMutablePointer<LIBMTP_folder_struct>,
+	parentId: UInt32,
+	results: inout [FileInfo],
+	synthIds: inout Set<UInt32>
+) {
+	if folder.pointee.parent_id == parentId {
+		results.append(FileInfo(cFolder: folder))
+		synthIds.insert(folder.pointee.folder_id)
+	}
+	if let child = folder.pointee.child {
+		_collectChildFolders(child, parentId: parentId, results: &results, synthIds: &synthIds)
+	}
+	if let sibling = folder.pointee.sibling {
+		_collectChildFolders(sibling, parentId: parentId, results: &results, synthIds: &synthIds)
+	}
+}
