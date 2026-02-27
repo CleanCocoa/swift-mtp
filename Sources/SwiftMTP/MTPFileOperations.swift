@@ -36,19 +36,15 @@ extension MTPDevice {
         }()
         let fileSize = (attrs[.size] as? UInt64) ?? 0
 
-        guard let metadata = LIBMTP_new_file_t() else {
+        guard let upload = Upload(
+            filename: filename, filesize: fileSize,
+            parentId: parentId, storageId: storageId
+        ) else {
             throw MTPError.operationFailed("failed to allocate file metadata")
         }
-        defer { LIBMTP_destroy_file_t(metadata) }
-
-        metadata.pointee.filename = strdup(filename)
-        metadata.pointee.filesize = fileSize
-        metadata.pointee.parent_id = parentId
-        metadata.pointee.storage_id = storageId
-        metadata.pointee.filetype = LIBMTP_FILETYPE_UNKNOWN
 
         let ret = withProgressCallback(progress) { callback, data in
-            LIBMTP_Send_File_From_File(raw, localPath, metadata, callback, data)
+            upload.send(device: raw, from: localPath, callback: callback, data: data)
         }
         if ret != 0 {
             let message = drainErrorStack(raw)
@@ -58,16 +54,15 @@ extension MTPDevice {
             throw MTPError.operationFailed(message)
         }
 
-        return metadata.pointee.item_id
+        return upload.itemId
     }
 
     public func fileInfo(id: UInt32) throws(MTPError) -> MTPFileInfo {
-        guard let file = LIBMTP_Get_Filemetadata(raw, id) else {
+        guard let handle = FileHandle(device: raw, id: id) else {
             _ = drainErrorStack(raw)
             throw MTPError.objectNotFound(id: id)
         }
-        defer { LIBMTP_destroy_file_t(file) }
-        return MTPFileInfo(cFile: file)
+        return handle.toFileInfo()
     }
 
     public func deleteObject(id: UInt32) throws(MTPError) {
@@ -99,12 +94,11 @@ extension MTPDevice {
     }
 
     public func renameFile(id: UInt32, newName: String) throws(MTPError) {
-        guard let file = LIBMTP_Get_Filemetadata(raw, id) else {
+        guard let handle = FileHandle(device: raw, id: id) else {
             _ = drainErrorStack(raw)
             throw MTPError.objectNotFound(id: id)
         }
-        defer { LIBMTP_destroy_file_t(file) }
-        let ret = LIBMTP_Set_File_Name(raw, file, newName)
+        let ret = handle.rename(device: raw, to: newName)
         if ret != 0 {
             let message = drainErrorStack(raw)
             throw MTPError.operationFailed(message)
@@ -112,15 +106,13 @@ extension MTPDevice {
     }
 
     public func renameFolder(id: UInt32, newName: String) throws(MTPError) {
-        guard let folderTree = LIBMTP_Get_Folder_List(raw) else {
+        guard let tree = FolderTree(device: raw) else {
             _ = drainErrorStack(raw)
             throw MTPError.objectNotFound(id: id)
         }
-        defer { LIBMTP_destroy_folder_t(folderTree) }
-        guard let folder = LIBMTP_Find_Folder(folderTree, id) else {
+        guard let ret = tree.rename(device: raw, folderId: id, to: newName) else {
             throw MTPError.objectNotFound(id: id)
         }
-        let ret = LIBMTP_Set_Folder_Name(raw, folder, newName)
         if ret != 0 {
             let message = drainErrorStack(raw)
             throw MTPError.operationFailed(message)
