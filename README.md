@@ -54,19 +54,17 @@ for entry in root.sorted(.directoriesFirst) {
 
 // resolve a path directly
 if let note = try storage.resolvePath("/Documents/note.pdf") {
-    try device.download(note.id, to: "/tmp/note.pdf") { sent, total in
+    let dest = URL(fileURLWithPath: "/tmp/note.pdf")
+    try device.download(note.id, to: dest) { sent, total in
         print("\(sent)/\(total)")
         return true  // return false to cancel
     }
 }
 
-// upload into a new folder
+// upload into a new folder — filename defaults to lastPathComponent
 let backup = try storage.makeDirectory(named: "Backup", in: .root)
-let uploaded = try storage.upload(
-    from: "/tmp/report.pdf",
-    to: backup.folder!,
-    as: "report.pdf"
-)
+let source = URL(fileURLWithPath: "/tmp/report.pdf")
+let uploaded = try storage.upload(from: source, to: backup.folder!)
 
 // rename, move, delete
 try device.rename(uploaded.id, to: "final-report.pdf")
@@ -118,7 +116,7 @@ do throws(MTPError) {
 }
 ```
 
-`MTPError` cases: `noDeviceAttached`, `connectionFailed`, `storageFull`, `objectNotFound`, `operationFailed`, `pathNotFound`, `moveNotSupported`, `cancelled`, `deviceDisconnected`.
+`MTPError` cases: `noDeviceAttached`, `connectionFailed`, `storageFull`, `objectNotFound`, `operationFailed`, `pathNotFound`, `notFileURL`, `moveNotSupported`, `cancelled`, `deviceDisconnected`.
 
 ## Types
 
@@ -144,7 +142,7 @@ do throws(MTPError) {
 
 ## Testing
 
-39 unit tests run without hardware, 3 require an MTP device:
+54 unit tests run without hardware, 3 require an MTP device:
 
 ```sh
 swift test
