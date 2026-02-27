@@ -148,7 +148,7 @@ struct HardwareTests {
         let devices = try mtpDetectDevices()
         let raw = try #require(devices.first)
         let device = try MTPDevice(busLocation: raw.busLocation, devnum: raw.devnum)
-        let entries = try device.listDirectory(storageId: 0, parentId: 0)
+        let entries = try device.listDirectory()
         #expect(!entries.isEmpty)
         for entry in entries {
             #expect(!entry.name.isEmpty)

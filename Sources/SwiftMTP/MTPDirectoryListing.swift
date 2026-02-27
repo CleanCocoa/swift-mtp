@@ -2,9 +2,11 @@ import Clibmtp
 
 extension MTPDevice {
     public func listDirectory(
-        storageId: UInt32 = 0,
-        parentId: UInt32 = 0
+        storage: StorageID = .all,
+        in parent: Folder = .root
     ) throws(MTPError) -> [MTPFileInfo] {
+        let storageId = storage.rawValue
+        let parentId = parent.id.rawValue
         var allFolderIds = Set<UInt32>()
         var synthIds = Set<UInt32>()
         var results: [MTPFileInfo] = []
@@ -43,7 +45,8 @@ extension MTPDevice {
         return results
     }
 
-    public func resolvePath(_ path: String, storageId: UInt32 = 0) throws(MTPError) -> MTPFileInfo? {
+    public func resolvePath(_ path: String, storage: StorageID = .all) throws(MTPError) -> MTPFileInfo? {
+        let storageId = storage.rawValue
         let components = path.split(separator: "/").map(String.init)
         if components.isEmpty { return nil }
 
