@@ -60,30 +60,32 @@ import Clibmtp
 
 @Test func `MTPFileInfo stores file properties`() {
     let date = Date(timeIntervalSince1970: 1000)
-    let info = MTPFileInfo(id: 1, parentId: 0, storageId: 100, name: "test.txt", size: 1024, modificationDate: date, isDirectory: false)
-    #expect(info.id == 1)
-    #expect(info.parentId == 0)
-    #expect(info.storageId == 100)
+    let info = MTPFileInfo(id: ObjectID(rawValue: 1), parentId: ObjectID(rawValue: 0), storageId: StorageID(rawValue: 100), name: "test.txt", size: 1024, modificationDate: date, isDirectory: false)
+    #expect(info.id == ObjectID(rawValue: 1))
+    #expect(info.parentId == ObjectID(rawValue: 0))
+    #expect(info.storageId == StorageID(rawValue: 100))
     #expect(info.name == "test.txt")
     #expect(info.size == 1024)
     #expect(info.modificationDate == date)
     #expect(info.isDirectory == false)
+    #expect(info.folder == nil)
 }
 
 @Test func `MTPFileInfo stores directory properties`() {
-    let dir = MTPFileInfo(id: 5, parentId: 0, storageId: 200, name: "Photos", size: 0, modificationDate: .distantPast, isDirectory: true)
-    #expect(dir.id == 5)
-    #expect(dir.parentId == 0)
-    #expect(dir.storageId == 200)
+    let dir = MTPFileInfo(id: ObjectID(rawValue: 5), parentId: ObjectID(rawValue: 0), storageId: StorageID(rawValue: 200), name: "Photos", size: 0, modificationDate: .distantPast, isDirectory: true)
+    #expect(dir.id == ObjectID(rawValue: 5))
+    #expect(dir.parentId == ObjectID(rawValue: 0))
+    #expect(dir.storageId == StorageID(rawValue: 200))
     #expect(dir.name == "Photos")
     #expect(dir.size == 0)
     #expect(dir.modificationDate == .distantPast)
     #expect(dir.isDirectory == true)
+    #expect(dir.folder == Folder(id: ObjectID(rawValue: 5)))
 }
 
 @Test func `MTPStorageInfo stores properties`() {
-    let storage = MTPStorageInfo(id: 0xABCD, description: "Internal Storage", maxCapacity: 64_000_000_000, freeSpace: 32_000_000_000)
-    #expect(storage.id == 0xABCD)
+    let storage = MTPStorageInfo(id: StorageID(rawValue: 0xABCD), description: "Internal Storage", maxCapacity: 64_000_000_000, freeSpace: 32_000_000_000)
+    #expect(storage.id == StorageID(rawValue: 0xABCD))
     #expect(storage.description == "Internal Storage")
     #expect(storage.maxCapacity == 64_000_000_000)
     #expect(storage.freeSpace == 32_000_000_000)

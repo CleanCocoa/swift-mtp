@@ -68,7 +68,7 @@ extension MTPDevice {
                 return nil
             }
 
-            currentParent = match.id
+            currentParent = match.id.rawValue
             lastMatch = match
         }
 

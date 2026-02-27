@@ -50,15 +50,17 @@ public struct MTPRawDevice: Sendable {
 }
 
 public struct MTPFileInfo: Sendable {
-    public let id: UInt32
-    public let parentId: UInt32
-    public let storageId: UInt32
+    public let id: ObjectID
+    public let parentId: ObjectID
+    public let storageId: StorageID
     public let name: String
     public let size: UInt64
     public let modificationDate: Date
     public let isDirectory: Bool
 
-    public init(id: UInt32, parentId: UInt32, storageId: UInt32, name: String, size: UInt64, modificationDate: Date, isDirectory: Bool) {
+    public var folder: Folder? { isDirectory ? Folder(id: id) : nil }
+
+    public init(id: ObjectID, parentId: ObjectID, storageId: StorageID, name: String, size: UInt64, modificationDate: Date, isDirectory: Bool) {
         self.id = id
         self.parentId = parentId
         self.storageId = storageId
@@ -70,9 +72,9 @@ public struct MTPFileInfo: Sendable {
 
     init(cFile: UnsafeMutablePointer<LIBMTP_file_struct>) {
         let f = cFile.pointee
-        id = f.item_id
-        parentId = f.parent_id
-        storageId = f.storage_id
+        id = ObjectID(rawValue: f.item_id)
+        parentId = ObjectID(rawValue: f.parent_id)
+        storageId = StorageID(rawValue: f.storage_id)
         name = f.filename.map { String(cString: $0) } ?? ""
         size = f.filesize
         modificationDate = Date(timeIntervalSince1970: TimeInterval(f.modificationdate))
@@ -81,9 +83,9 @@ public struct MTPFileInfo: Sendable {
 
     init(cFolder: UnsafeMutablePointer<LIBMTP_folder_struct>) {
         let f = cFolder.pointee
-        id = f.folder_id
-        parentId = f.parent_id
-        storageId = f.storage_id
+        id = ObjectID(rawValue: f.folder_id)
+        parentId = ObjectID(rawValue: f.parent_id)
+        storageId = StorageID(rawValue: f.storage_id)
         name = f.name.map { String(cString: $0) } ?? ""
         size = 0
         modificationDate = .distantPast
@@ -92,12 +94,12 @@ public struct MTPFileInfo: Sendable {
 }
 
 public struct MTPStorageInfo: Sendable {
-    public let id: UInt32
+    public let id: StorageID
     public let description: String
     public let maxCapacity: UInt64
     public let freeSpace: UInt64
 
-    public init(id: UInt32, description: String, maxCapacity: UInt64, freeSpace: UInt64) {
+    public init(id: StorageID, description: String, maxCapacity: UInt64, freeSpace: UInt64) {
         self.id = id
         self.description = description
         self.maxCapacity = maxCapacity
@@ -106,7 +108,7 @@ public struct MTPStorageInfo: Sendable {
 
     init(cStorage: UnsafePointer<LIBMTP_devicestorage_struct>) {
         let s = cStorage.pointee
-        id = s.id
+        id = StorageID(rawValue: s.id)
         description = s.StorageDescription.map { String(cString: $0) } ?? ""
         maxCapacity = s.MaxCapacity
         freeSpace = s.FreeSpaceInBytes
