@@ -275,6 +275,81 @@ import Testing
 	#expect(a != c)
 }
 
+@Test func `BusLocation round-trips through rawValue`() {
+	let loc = BusLocation(rawValue: 3)
+	#expect(BusLocation(rawValue: loc.rawValue) == loc)
+}
+
+@Test func `BusLocation description`() {
+	#expect(BusLocation(rawValue: 3).description == "BusLocation(3)")
+}
+
+@Test func `BusLocation is Hashable`() {
+	let a = BusLocation(rawValue: 5)
+	let b = BusLocation(rawValue: 5)
+	let c = BusLocation(rawValue: 6)
+	#expect(a == b)
+	#expect(a != c)
+	var set = Set<BusLocation>()
+	set.insert(a)
+	set.insert(b)
+	#expect(set.count == 1)
+}
+
+@Test func `BusLocation is Sendable`() {
+	let _: any Sendable = BusLocation(rawValue: 1)
+}
+
+@Test func `VendorID round-trips through rawValue`() {
+	let vid = VendorID(rawValue: 0x2207)
+	#expect(VendorID(rawValue: vid.rawValue) == vid)
+}
+
+@Test func `VendorID description uses hex`() {
+	#expect(VendorID(rawValue: 0x2207).description == "VendorID(0x2207)")
+}
+
+@Test func `VendorID is Hashable`() {
+	let a = VendorID(rawValue: 0x05AC)
+	let b = VendorID(rawValue: 0x05AC)
+	let c = VendorID(rawValue: 0x1234)
+	#expect(a == b)
+	#expect(a != c)
+	var set = Set<VendorID>()
+	set.insert(a)
+	set.insert(b)
+	#expect(set.count == 1)
+}
+
+@Test func `VendorID is Sendable`() {
+	let _: any Sendable = VendorID(rawValue: 0x1234)
+}
+
+@Test func `ProductID round-trips through rawValue`() {
+	let pid = ProductID(rawValue: 0x0007)
+	#expect(ProductID(rawValue: pid.rawValue) == pid)
+}
+
+@Test func `ProductID description uses hex with leading zeros`() {
+	#expect(ProductID(rawValue: 0x0007).description == "ProductID(0x0007)")
+}
+
+@Test func `ProductID is Hashable`() {
+	let a = ProductID(rawValue: 0x12AB)
+	let b = ProductID(rawValue: 0x12AB)
+	let c = ProductID(rawValue: 0x00FF)
+	#expect(a == b)
+	#expect(a != c)
+	var set = Set<ProductID>()
+	set.insert(a)
+	set.insert(b)
+	#expect(set.count == 1)
+}
+
+@Test func `ProductID is Sendable`() {
+	let _: any Sendable = ProductID(rawValue: 0x5678)
+}
+
 private let deviceConnected = ProcessInfo.processInfo.environment["MTP_DEVICE_CONNECTED"] == "1"
 
 @Test(.disabled(if: deviceConnected, "Device is connected, detection will return results"))
