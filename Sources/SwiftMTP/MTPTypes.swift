@@ -1,0 +1,94 @@
+import Foundation
+import Clibmtp
+
+public struct MTPRawDevice: Sendable {
+    public let busLocation: UInt32
+    public let devnum: UInt8
+    public let vendor: String
+    public let vendorId: UInt16
+    public let product: String
+    public let productId: UInt16
+
+    public init(busLocation: UInt32, devnum: UInt8, vendor: String, vendorId: UInt16, product: String, productId: UInt16) {
+        self.busLocation = busLocation
+        self.devnum = devnum
+        self.vendor = vendor
+        self.vendorId = vendorId
+        self.product = product
+        self.productId = productId
+    }
+
+    init(cRawDevice: UnsafePointer<LIBMTP_raw_device_struct>) {
+        let raw = cRawDevice.pointee
+        busLocation = raw.bus_location
+        devnum = raw.devnum
+        vendor = raw.device_entry.vendor.map { String(cString: $0) } ?? ""
+        vendorId = raw.device_entry.vendor_id
+        product = raw.device_entry.product.map { String(cString: $0) } ?? ""
+        productId = raw.device_entry.product_id
+    }
+}
+
+public struct MTPFileInfo: Sendable {
+    public let id: UInt32
+    public let parentId: UInt32
+    public let storageId: UInt32
+    public let name: String
+    public let size: UInt64
+    public let modificationDate: Date
+    public let isDirectory: Bool
+
+    public init(id: UInt32, parentId: UInt32, storageId: UInt32, name: String, size: UInt64, modificationDate: Date, isDirectory: Bool) {
+        self.id = id
+        self.parentId = parentId
+        self.storageId = storageId
+        self.name = name
+        self.size = size
+        self.modificationDate = modificationDate
+        self.isDirectory = isDirectory
+    }
+
+    init(cFile: UnsafeMutablePointer<LIBMTP_file_struct>) {
+        let f = cFile.pointee
+        id = f.item_id
+        parentId = f.parent_id
+        storageId = f.storage_id
+        name = f.filename.map { String(cString: $0) } ?? ""
+        size = f.filesize
+        modificationDate = Date(timeIntervalSince1970: TimeInterval(f.modificationdate))
+        isDirectory = f.filetype == LIBMTP_FILETYPE_FOLDER
+    }
+
+    init(cFolder: UnsafeMutablePointer<LIBMTP_folder_struct>) {
+        let f = cFolder.pointee
+        id = f.folder_id
+        parentId = f.parent_id
+        storageId = f.storage_id
+        name = f.name.map { String(cString: $0) } ?? ""
+        size = 0
+        modificationDate = .distantPast
+        isDirectory = true
+    }
+}
+
+public struct MTPStorageInfo: Sendable {
+    public let id: UInt32
+    public let description: String
+    public let maxCapacity: UInt64
+    public let freeSpace: UInt64
+
+    public init(id: UInt32, description: String, maxCapacity: UInt64, freeSpace: UInt64) {
+        self.id = id
+        self.description = description
+        self.maxCapacity = maxCapacity
+        self.freeSpace = freeSpace
+    }
+
+    init(cStorage: UnsafePointer<LIBMTP_devicestorage_struct>) {
+        let s = cStorage.pointee
+        id = s.id
+        description = s.StorageDescription.map { String(cString: $0) } ?? ""
+        maxCapacity = s.MaxCapacity
+        freeSpace = s.FreeSpaceInBytes
+    }
+}
