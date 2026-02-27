@@ -48,33 +48,41 @@ No `defer`, no `pointee`, no `strdup`, no `LIBMTP_FILETYPE_UNKNOWN`, no `LIBMTP_
 
 ### Rename a folder
 
-Before — 3 C calls, `defer`, interior pointer escapes into caller scope:
+The public API takes `id` from the caller (e.g. from a previous `listDirectory` result). The improvement is that `LIBMTP_Find_Folder`'s interior pointer — which points into the live tree and must not outlive it — no longer escapes into the caller's scope.
+
+Before — 3 C calls, `defer`, interior pointer `folder` visible to caller:
 
 ```swift
-guard let folderTree = LIBMTP_Get_Folder_List(raw) else {
-    _ = drainErrorStack(raw)
-    throw MTPError.objectNotFound(id: id)
-}
-defer { LIBMTP_destroy_folder_t(folderTree) }
-guard let folder = LIBMTP_Find_Folder(folderTree, id) else {
-    throw MTPError.objectNotFound(id: id)
-}
-let ret = LIBMTP_Set_Folder_Name(raw, folder, newName)
-```
-
-After — `FolderTree` encapsulates find + mutate, interior pointer never escapes:
-
-```swift
-guard let tree = FolderTree(device: raw) else {
-    _ = drainErrorStack(raw)
-    throw MTPError.objectNotFound(id: id)
-}
-guard let ret = tree.rename(device: raw, folderId: id, to: newName) else {
-    throw MTPError.objectNotFound(id: id)
+public func renameFolder(id: UInt32, newName: String) throws(MTPError) {
+    guard let folderTree = LIBMTP_Get_Folder_List(raw) else {
+        _ = drainErrorStack(raw)
+        throw MTPError.objectNotFound(id: id)
+    }
+    defer { LIBMTP_destroy_folder_t(folderTree) }
+    guard let folder = LIBMTP_Find_Folder(folderTree, id) else {
+        throw MTPError.objectNotFound(id: id)
+    }
+    let ret = LIBMTP_Set_Folder_Name(raw, folder, newName)
+    // ...
 }
 ```
 
-No `defer`, no `LIBMTP_Find_Folder`, no `LIBMTP_destroy_folder_t`.
+After — `FolderTree` owns the tree, `rename()` does the find + mutate internally:
+
+```swift
+public func renameFolder(id: UInt32, newName: String) throws(MTPError) {
+    guard let tree = FolderTree(device: raw) else {
+        _ = drainErrorStack(raw)
+        throw MTPError.objectNotFound(id: id)
+    }
+    guard let ret = tree.rename(device: raw, folderId: id, to: newName) else {
+        throw MTPError.objectNotFound(id: id)
+    }
+    // ...
+}
+```
+
+No `defer`, no `LIBMTP_Find_Folder`, no `LIBMTP_destroy_folder_t`. The interior pointer from `Find_Folder` lives and dies inside `rename()`.
 
 ### Rename a file
 
