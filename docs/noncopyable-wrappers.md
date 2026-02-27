@@ -1,231 +1,197 @@
 # Noncopyable Wrappers for C Resource Management
 
-Research findings on replacing raw pointer `defer`/`destroy` patterns with Swift 6.2 `~Copyable` structs that guarantee cleanup via `deinit`.
+Replace raw pointer `defer`/`destroy` patterns with Swift 6.2 `~Copyable` structs that guarantee cleanup via `deinit`. The key design principle: **wrappers create the resource internally** — the `init` that takes a raw pointer is `fileprivate`, and the public/internal API uses factory functions following the Swift API Design Guidelines (`makeXYZ` naming).
 
-## High-Value Changes
+## Design: `MTPCTypes.swift`
 
-### 1. MTPFileNode — single file list node
+All wrapper types and their factories live in a single new file. They are `internal` — implementation details, not public API.
 
-Wraps `UnsafeMutablePointer<LIBMTP_file_struct>`. Deinit calls `LIBMTP_destroy_file_t`. Replaces every `defer { LIBMTP_destroy_file_t(file) }` in `listDirectory` and `resolvePath`.
+### 1. MTPOwnedFile — single owned `LIBMTP_file_struct`
+
+Unifies three allocation patterns: per-node ownership from linked list iteration (`Get_Files_And_Folders`), single metadata lookup (`Get_Filemetadata`), and fresh allocation for uploads (`new_file_t`).
 
 ```swift
-struct MTPFileNode: ~Copyable {
-    private let ptr: UnsafeMutablePointer<LIBMTP_file_struct>
+struct MTPOwnedFile: ~Copyable {
+    let pointer: UnsafeMutablePointer<LIBMTP_file_struct>
 
-    init?(_ ptr: UnsafeMutablePointer<LIBMTP_file_struct>?) {
-        guard let ptr else { return nil }
-        self.ptr = ptr
+    fileprivate init(_ pointer: UnsafeMutablePointer<LIBMTP_file_struct>) {
+        self.pointer = pointer
     }
 
-    deinit { LIBMTP_destroy_file_t(ptr) }
+    deinit { LIBMTP_destroy_file_t(pointer) }
 
-    var next: UnsafeMutablePointer<LIBMTP_file_struct>? { ptr.pointee.next }
-    borrowing func toFileInfo() -> MTPFileInfo { MTPFileInfo(cFile: ptr) }
-    borrowing var itemId: UInt32 { ptr.pointee.item_id }
-    borrowing var parentId: UInt32 { ptr.pointee.parent_id }
-    borrowing var filetype: LIBMTP_filetype_t { ptr.pointee.filetype }
+    var next: UnsafeMutablePointer<LIBMTP_file_struct>? { pointer.pointee.next }
+    func toFileInfo() -> MTPFileInfo { MTPFileInfo(cFile: pointer) }
+    var itemId: UInt32 { pointer.pointee.item_id }
+    var parentId: UInt32 { pointer.pointee.parent_id }
+    var filetype: LIBMTP_filetype_t { pointer.pointee.filetype }
 }
 ```
 
-Linked list walk becomes:
+Factory functions:
 
 ```swift
-var cursor = LIBMTP_Get_Files_And_Folders(raw, storageId, parentId)
-while let node = MTPFileNode(cursor) {
+func makeFileList(
+    device: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>,
+    storageId: UInt32,
+    parentId: UInt32
+) -> UnsafeMutablePointer<LIBMTP_file_struct>? {
+    LIBMTP_Get_Files_And_Folders(device, storageId, parentId)
+}
+
+func makeFileMetadata(
+    device: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>,
+    id: UInt32
+) -> MTPOwnedFile? {
+    guard let p = LIBMTP_Get_Filemetadata(device, id) else { return nil }
+    return MTPOwnedFile(p)
+}
+
+func makeNewFile() -> MTPOwnedFile? {
+    guard let p = LIBMTP_new_file_t() else { return nil }
+    return MTPOwnedFile(p)
+}
+```
+
+`makeFileList` returns the raw pointer (not `MTPOwnedFile`) because the linked list is walked node-by-node — each node becomes an `MTPOwnedFile` inside the loop via its `fileprivate init`. Wrapping the head would imply ownership of the entire list, which is wrong since `destroy_file_t` only frees one node.
+
+Linked list walk pattern:
+
+```swift
+var cursor = makeFileList(device: raw, storageId: storageId, parentId: parentId)
+while let rawPtr = cursor {
+    let node = MTPOwnedFile(rawPtr)
     cursor = node.next
     if node.parentId != parentId { continue }
     results.append(node.toFileInfo())
 }
 ```
 
-No `defer` needed — `node` is destroyed at end of each iteration. The compiler prevents use-after-free.
+### 2. MTPOwnedFolderTree — folder tree root owner
 
-`LIBMTP_destroy_file_t` frees a single node (flat singly-linked list), so per-node ownership is safe.
-
-### 2. MTPFolderTree — folder tree root owner
-
-Wraps the root from `LIBMTP_Get_Folder_List`. Deinit calls `LIBMTP_destroy_folder_t`, which recursively frees the entire tree.
+Owns the root from `LIBMTP_Get_Folder_List`. Deinit calls `LIBMTP_destroy_folder_t`, which recursively frees the entire tree. The recursive traversal helpers (`collectAllFolderIds`, `collectChildFolders`) move here as methods.
 
 ```swift
-struct MTPFolderTree: ~Copyable {
+struct MTPOwnedFolderTree: ~Copyable {
     private let root: UnsafeMutablePointer<LIBMTP_folder_struct>
 
-    init?(_ root: UnsafeMutablePointer<LIBMTP_folder_struct>?) {
-        guard let root else { return nil }
+    fileprivate init(_ root: UnsafeMutablePointer<LIBMTP_folder_struct>) {
         self.root = root
     }
 
     deinit { LIBMTP_destroy_folder_t(root) }
 
-    borrowing func withRoot<R>(_ body: (UnsafeMutablePointer<LIBMTP_folder_struct>) -> R) -> R {
-        body(root)
+    func collectAllFolderIds(into ids: inout Set<UInt32>) {
+        _collectAllFolderIds(root, into: &ids)
     }
 
-    borrowing func find(id: UInt32) -> UnsafeMutablePointer<LIBMTP_folder_struct>? {
+    func collectChildFolders(
+        parentId: UInt32,
+        results: inout [MTPFileInfo],
+        synthIds: inout Set<UInt32>
+    ) {
+        _collectChildFolders(root, parentId: parentId, results: &results, synthIds: &synthIds)
+    }
+
+    func find(id: UInt32) -> UnsafeMutablePointer<LIBMTP_folder_struct>? {
         LIBMTP_Find_Folder(root, id)
     }
 }
 ```
 
-Interior pointers from `find()` or recursive traversal must not outlive the tree. Use closure-based APIs to keep the tree borrowed:
+Factory:
 
 ```swift
-guard let tree = MTPFolderTree(LIBMTP_Get_Folder_List(raw)) else { ... }
-guard let folder = tree.find(id: id) else { ... }
-let ret = LIBMTP_Set_Folder_Name(raw, folder, newName)
-// tree.deinit fires here
-```
-
-**Never wrap interior folder nodes in ~Copyable** — `destroy_folder_t` on an interior node would double-free children when the root is later destroyed.
-
-### 3. MTPFileHandle — upload/rename metadata
-
-Wraps `LIBMTP_new_file_t()` allocation. Deinit calls `LIBMTP_destroy_file_t`. Cleanest 1-to-1 substitution of existing `guard let` + `defer` patterns.
-
-```swift
-struct MTPFileHandle: ~Copyable {
-    let pointer: UnsafeMutablePointer<LIBMTP_file_struct>
-
-    init?() {
-        guard let p = LIBMTP_new_file_t() else { return nil }
-        self.pointer = p
-    }
-
-    deinit { LIBMTP_destroy_file_t(pointer) }
+func makeFolderTree(
+    device: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>
+) -> MTPOwnedFolderTree? {
+    guard let p = LIBMTP_Get_Folder_List(device) else { return nil }
+    return MTPOwnedFolderTree(p)
 }
 ```
 
-Usage in `uploadFile`:
+The two private recursive helpers move from `MTPDirectoryListing.swift` to `MTPCTypes.swift` with underscore-prefixed names (`_collectAllFolderIds`, `_collectChildFolders`).
 
-```swift
-guard let metadata = MTPFileHandle() else {
-    throw MTPError.operationFailed("failed to allocate file metadata")
-}
-metadata.pointer.pointee.filename = strdup(filename)
-metadata.pointer.pointee.filesize = fileSize
-// ...
-let ret = LIBMTP_Send_File_From_File(raw, localPath, metadata.pointer, callback, data)
-let itemId = metadata.pointer.pointee.item_id
-// metadata.deinit fires — no defer needed
-```
+**Never wrap interior folder nodes in ~Copyable** — `destroy_folder_t` on an interior node would double-free children when the root is later destroyed. Interior pointers from `find()` must not outlive the tree.
 
-### 4. MTPResult — error stack drain guarantee
+## Call sites to refactor
 
-Ensures `drainErrorStack` is called even if the caller forgets. If nobody calls `.get()`, deinit still clears the error stack to prevent stale errors leaking into subsequent operations.
+### `MTPDirectoryListing.swift`
+
+**`listDirectory`**:
+- `LIBMTP_Get_Folder_List` + explicit `LIBMTP_destroy_folder_t` → `makeFolderTree` (deinit handles free)
+- `LIBMTP_Get_Files_And_Folders` + per-node `defer { destroy }` → `makeFileList` + `MTPOwnedFile` per iteration
+- Remove private helpers `collectAllFolderIds` and `collectChildFolders` (moved to `MTPOwnedFolderTree`)
+
+**`resolvePath`**:
+- Same file list loop: `makeFileList` + `MTPOwnedFile` per node
+
+### `MTPFileOperations.swift`
+
+**`uploadFile`**: `LIBMTP_new_file_t` + `defer { destroy }` → `makeNewFile()`
+
+**`fileInfo`**: `LIBMTP_Get_Filemetadata` + `defer { destroy }` → `makeFileMetadata(device:id:)`
+
+**`renameFile`**: same `Get_Filemetadata` pattern → `makeFileMetadata`
+
+**`renameFolder`**: `LIBMTP_Get_Folder_List` + `defer { destroy }` + `LIBMTP_Find_Folder` → `makeFolderTree` + `.find(id:)`
+
+## What does NOT change
+
+- No public API changes — all wrappers are `internal`
+- No test changes — same behavior, structural cleanup only
+- `MTPDevice.swift` — its `defer { free(rawDevices) }` is for a C array, not a libmtp-managed resource
+- `MTPDeviceDiscovery.swift` — same
+
+## Future ideas (not in scope)
+
+### MTPResult — error stack drain guarantee
+
+A `~Copyable` wrapper that ensures `drainErrorStack` is called even if the caller forgets. Deinit clears the error stack to prevent stale errors leaking.
 
 ```swift
 struct MTPResult<T>: ~Copyable {
     private let device: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>
     private let value: Result<T, String>
 
-    init(device: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>, returnCode: CInt, value: T) {
-        self.device = device
-        self.value = returnCode == 0 ? .success(value) : .failure("pending")
-    }
-
-    consuming func get() throws(MTPError) -> T {
-        switch value {
-        case .success(let v): return v
-        case .failure:
-            let msg = drainErrorStack(device)
-            throw MTPError.operationFailed(msg)
-        }
-    }
-
-    deinit {
-        if case .failure = value {
-            LIBMTP_Clear_Errorstack(device)
-        }
-    }
+    consuming func get() throws(MTPError) -> T { ... }
+    deinit { if case .failure = value { LIBMTP_Clear_Errorstack(device) } }
 }
 ```
 
-Does not help for operations that classify errors further (e.g. checking for "storage full" or "MoveObject" in the error text). Those still need custom drain logic.
+Does not help for operations that classify errors further (checking for "storage full", "MoveObject"). Lifetime coupling to `MTPDevice` not enforced statically.
 
-Lifetime coupling: `MTPResult` must not outlive `MTPDevice`. Not enforced statically (would need `~Escapable` / lifetime annotations), but safe in practice since results are always stack-local.
+### TransferSession — callback context owner
 
-## Medium-Value Ideas
+Replaces `withUnsafeMutablePointer` stack pin for progress callbacks. Tradeoff: one heap allocation vs. current zero-allocation stack pin. The nil-handler fast path should remain allocation-free.
 
-### 5. TransferSession — callback context owner
+### Consuming MTPRawDevice → MTPDevice
 
-Replaces `withUnsafeMutablePointer` stack pin for progress callbacks with a heap-allocated ~Copyable struct. Deinit deallocates the context pointer.
-
-```swift
-struct TransferSession: ~Copyable {
-    private let box: UnsafeMutablePointer<ProgressHandler>
-
-    init(handler: ProgressHandler) {
-        box = .allocate(capacity: 1)
-        box.initialize(to: handler)
-    }
-
-    deinit {
-        box.deinitialize(count: 1)
-        box.deallocate()
-    }
-
-    var cCallback: LIBMTP_progressfunc_t { /* C trampoline reading from box */ }
-    var contextPointer: UnsafeMutableRawPointer { UnsafeMutableRawPointer(box) }
-}
-```
-
-Tradeoff: one pointer-sized heap allocation vs. current zero-allocation stack pin. The nil-handler fast path should remain allocation-free.
-
-### 6. Consuming MTPRawDevice → MTPDevice
-
-Store `LIBMTP_raw_device_t` by value in a ~Copyable `MTPRawDevice`. Consuming `open()` transfers ownership into `MTPDevice`, eliminating the double device scan.
-
-```swift
-extension MTPRawDevice {
-    consuming func open() throws(MTPError) -> MTPDevice {
-        try MTPDevice(consuming: self)
-    }
-}
-```
-
-Public API break. Worth it pre-1.0. The ergonomic gain (single-use token, no re-scan) is the main value, not performance.
-
-### 7. MTPFileSequence — consuming linked list iterator
-
-```swift
-struct MTPFileSequence: ~Copyable {
-    private var cursor: UnsafeMutablePointer<LIBMTP_file_struct>?
-
-    mutating func next() -> MTPFileNode? {
-        guard let current = cursor else { return nil }
-        cursor = current.pointee.next
-        return MTPFileNode(current)
-    }
-}
-```
-
-Cannot conform to `Sequence` because `~Copyable` types can't be `Sequence.Element`. Must use `while let node = seq.next()` instead of `for...in`.
-
-## Blocked
+Store `LIBMTP_raw_device_t` by value in a ~Copyable `MTPRawDevice`. Consuming `open()` eliminates the double device scan. Public API break — worth it pre-1.0.
 
 ### MTPDevice as ~Copyable struct
 
-The most architecturally correct design: `borrowing self` for reads, `consuming func disconnect()` to prevent use-after-release. But **classes cannot be ~Copyable in Swift 6.2**. Workaround: an internal `MTPDeviceHandle: ~Copyable` struct inside the class prevents accidental pointer aliasing within the implementation, but does not change the public API.
+`borrowing self` for reads, `consuming func disconnect()` to prevent use-after-release. **Blocked: classes cannot be ~Copyable in Swift 6.2.**
 
 ### Span for raw device arrays
 
-`Span` requires contiguous memory (only the `rawDevices` array qualifies). `LIBMTP_Open_Raw_Device_Uncached` takes `inout`, requiring a copy out of the span anyway. `UnsafeBufferPointer` already provides equivalent iteration safety within the `defer { free }` scope. Marginal benefit.
+Marginal benefit. `UnsafeBufferPointer` is already fine. `LIBMTP_Open_Raw_Device_Uncached` takes `inout`, requiring a copy anyway.
 
 ## Pitfalls
 
-- **Folder tree recursive free**: `LIBMTP_destroy_folder_t` frees the entire tree from any node. Only the root should be wrapped in ~Copyable. Interior nodes must borrow from the live tree via closures.
-- **`discard self` availability**: Suppressing deinit via `discard self` may still be experimental. Use `borrowing` extraction methods so deinit always fires.
-- **`Sequence` conformance blocked**: `~Copyable` element types cannot satisfy `Sequence.Element`. Use `while let` loops.
-- **`Sendable` conformance blocked**: `~Copyable` structs cannot conform to `Sendable`. Correct for MTP (inherently serial) but prevents actor-boundary crossing.
-- **Cursor ordering in list walks**: `node.next` must be read while the node is still live — before any `continue` path that drops the node. `MTPFileSequence` enforces this structurally by advancing the cursor inside `next()`.
-- **`LIBMTP_destroy_file_t` frees filename**: The `strdup` ownership for filenames is transferred into the C struct implicitly. The ~Copyable wrapper doesn't change this — it just makes the destroy call structural.
+- **Folder tree recursive free**: `LIBMTP_destroy_folder_t` frees the entire tree. Only the root gets wrapped. Interior nodes borrow from the live tree.
+- **`discard self` availability**: May still be experimental. Use borrowing extraction so deinit always fires.
+- **`Sequence` conformance blocked**: `~Copyable` types can't be `Sequence.Element`. Use `while let` loops.
+- **`Sendable` conformance blocked**: `~Copyable` structs can't conform to `Sendable`. Correct for MTP (inherently serial).
+- **Cursor ordering**: `node.next` must be read while the node is still live — before any `continue` that drops it.
+- **`LIBMTP_destroy_file_t` frees filename**: The `strdup` ownership is transferred into the C struct. The ~Copyable wrapper doesn't change this.
 
 ## Concurrency (adjacent concern)
 
-libmtp is not thread-safe. Options for enforcement:
+libmtp is not thread-safe. Options:
 
-- `@MainActor` on `MTPDevice` — simplest, but forces all callers to main thread
-- Custom serial `actor` — proper isolation, but adds `await` at every call site
-- Status quo (no annotation) — fine for CLI tools, latent bug for concurrent apps
+- `@MainActor` on `MTPDevice` — simplest, forces main thread
+- Custom serial `actor` — proper isolation, adds `await` everywhere
+- Status quo — fine for CLI tools, latent bug for concurrent apps
 
 Orthogonal to ~Copyable but worth deciding alongside any API redesign.
