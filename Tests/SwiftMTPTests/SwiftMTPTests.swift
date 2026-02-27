@@ -147,6 +147,37 @@ import Clibmtp
     }
 }
 
+@Test func `MTPEvent is Equatable`() {
+    let a = MTPEvent.objectAdded(ObjectID(rawValue: 1))
+    let b = MTPEvent.objectAdded(ObjectID(rawValue: 1))
+    let c = MTPEvent.objectAdded(ObjectID(rawValue: 2))
+    let d = MTPEvent.objectRemoved(ObjectID(rawValue: 1))
+    #expect(a == b)
+    #expect(a != c)
+    #expect(a != d)
+    #expect(MTPEvent.devicePropertyChanged == .devicePropertyChanged)
+}
+
+@Test func `MTPEvent is Sendable`() {
+    let _: any Sendable = MTPEvent.storeAdded(StorageID(rawValue: 1))
+    let _: any Sendable = MTPEvent.storeRemoved(StorageID(rawValue: 1))
+    let _: any Sendable = MTPEvent.objectAdded(ObjectID(rawValue: 1))
+    let _: any Sendable = MTPEvent.objectRemoved(ObjectID(rawValue: 1))
+    let _: any Sendable = MTPEvent.devicePropertyChanged
+}
+
+@Test func `MTPEvent init from C constants`() {
+    #expect(MTPEvent(cEvent: LIBMTP_EVENT_STORE_ADDED, param: 5) == .storeAdded(StorageID(rawValue: 5)))
+    #expect(MTPEvent(cEvent: LIBMTP_EVENT_STORE_REMOVED, param: 6) == .storeRemoved(StorageID(rawValue: 6)))
+    #expect(MTPEvent(cEvent: LIBMTP_EVENT_OBJECT_ADDED, param: 7) == .objectAdded(ObjectID(rawValue: 7)))
+    #expect(MTPEvent(cEvent: LIBMTP_EVENT_OBJECT_REMOVED, param: 8) == .objectRemoved(ObjectID(rawValue: 8)))
+    #expect(MTPEvent(cEvent: LIBMTP_EVENT_DEVICE_PROPERTY_CHANGED, param: 0) == .devicePropertyChanged)
+}
+
+@Test func `MTPEvent init returns nil for EVENT_NONE`() {
+    #expect(MTPEvent(cEvent: LIBMTP_EVENT_NONE, param: 0) == nil)
+}
+
 private let deviceConnected = ProcessInfo.processInfo.environment["MTP_DEVICE_CONNECTED"] == "1"
 
 @Test(.disabled(if: deviceConnected, "Device is connected, detection will return results"))

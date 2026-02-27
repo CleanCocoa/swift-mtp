@@ -58,6 +58,17 @@ public final class MTPDevice {
         return String(cString: cStr)
     }
 
+    public func readEvent() throws(MTPError) -> MTPEvent {
+        var event = LIBMTP_EVENT_NONE
+        var param: UInt32 = 0
+        let ret = LIBMTP_Read_Event(raw, &event, &param)
+        if ret != 0 { throw .deviceDisconnected }
+        guard let mtpEvent = MTPEvent(cEvent: event, param: param) else {
+            throw .deviceDisconnected
+        }
+        return mtpEvent
+    }
+
     public func supportsCapability(_ cap: MTPDeviceCapability) -> Bool {
         let cCap: LIBMTP_devicecap_t = switch cap {
         case .moveObject: LIBMTP_DEVICECAP_MoveObject
