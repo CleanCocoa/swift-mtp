@@ -12,7 +12,7 @@ extension MTPDevice {
         }
         if ret != 0 {
             let message = drainErrorStack(raw)
-            if message.contains("cancel") || message.contains("Cancel") {
+            if message.localizedCaseInsensitiveContains("cancel") {
                 throw MTPError.cancelled
             }
             throw MTPError.operationFailed(message)
@@ -52,7 +52,7 @@ extension MTPDevice {
         }
         if ret != 0 {
             let message = drainErrorStack(raw)
-            if message.contains("storage full") || message.contains("Storage full") {
+            if message.localizedCaseInsensitiveContains("storage full") {
                 throw MTPError.storageFull
             }
             throw MTPError.operationFailed(message)

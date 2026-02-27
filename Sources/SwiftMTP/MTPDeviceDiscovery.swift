@@ -12,6 +12,7 @@ public func mtpDetectDevices() throws(MTPError) -> [MTPRawDevice] {
         return []
     }
     if result != LIBMTP_ERROR_NONE {
+        free(rawDevices)
         throw MTPError.operationFailed("device detection failed")
     }
     let devices = (0..<numDevices).map { i in

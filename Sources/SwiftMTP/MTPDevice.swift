@@ -43,32 +43,16 @@ public final class MTPDevice {
         LIBMTP_Release_Device(raw)
     }
 
-    public var manufacturerName: String? {
-        guard let cStr = LIBMTP_Get_Manufacturername(raw) else { return nil }
-        defer { free(cStr) }
-        return String(cString: cStr)
-    }
+    public var manufacturerName: String? { getString(LIBMTP_Get_Manufacturername) }
+    public var modelName: String? { getString(LIBMTP_Get_Modelname) }
+    public var serialNumber: String? { getString(LIBMTP_Get_Serialnumber) }
+    public var friendlyName: String? { getString(LIBMTP_Get_Friendlyname) }
+    public var deviceVersion: String? { getString(LIBMTP_Get_Deviceversion) }
 
-    public var modelName: String? {
-        guard let cStr = LIBMTP_Get_Modelname(raw) else { return nil }
-        defer { free(cStr) }
-        return String(cString: cStr)
-    }
-
-    public var serialNumber: String? {
-        guard let cStr = LIBMTP_Get_Serialnumber(raw) else { return nil }
-        defer { free(cStr) }
-        return String(cString: cStr)
-    }
-
-    public var friendlyName: String? {
-        guard let cStr = LIBMTP_Get_Friendlyname(raw) else { return nil }
-        defer { free(cStr) }
-        return String(cString: cStr)
-    }
-
-    public var deviceVersion: String? {
-        guard let cStr = LIBMTP_Get_Deviceversion(raw) else { return nil }
+    private func getString(
+        _ cfunc: (UnsafeMutablePointer<LIBMTP_mtpdevice_struct>?) -> UnsafeMutablePointer<CChar>?
+    ) -> String? {
+        guard let cStr = cfunc(raw) else { return nil }
         defer { free(cStr) }
         return String(cString: cStr)
     }
