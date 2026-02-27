@@ -60,13 +60,13 @@ struct FileHandle: ~Copyable {
 struct FileNode: ~Copyable {
     private let pointer: UnsafeMutablePointer<LIBMTP_file_struct>
 
-    fileprivate init(_ pointer: UnsafeMutablePointer<LIBMTP_file_struct>) {
+    init(_ pointer: UnsafeMutablePointer<LIBMTP_file_struct>) {
         self.pointer = pointer
     }
 
     deinit { LIBMTP_destroy_file_t(pointer) }
 
-    fileprivate var next: UnsafeMutablePointer<LIBMTP_file_struct>? { pointer.pointee.next }
+    var next: UnsafeMutablePointer<LIBMTP_file_struct>? { pointer.pointee.next }
 
     func toFileInfo() -> MTPFileInfo { MTPFileInfo(cFile: pointer) }
     var itemId: UInt32 { pointer.pointee.item_id }
