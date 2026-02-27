@@ -34,41 +34,41 @@ import SwiftMTP
 mtpInitialize()
 
 // discover and open the first device
-let raw = try mtpDetectDevices().first!
-let device = try MTPDevice(busLocation: raw.busLocation, devnum: raw.devnum)
+var raw = try mtpDetectDevices().first!
+let device = try raw.open()
 
 // pick a storage
-let storage = device.storageInfo().first!
+let storage = device.defaultStorage!
 
 // list root and find a file by name
-let root = try device.listDirectory(storageId: storage.id, parentId: 0)
+let root = try device.contents()
 for entry in root {
     print(entry.name, entry.isDirectory ? "dir" : "\(entry.size) bytes")
 }
 
 // resolve a path directly
-if let note = try device.resolvePath("/Documents/note.pdf", storageId: storage.id) {
-    try device.downloadFile(id: note.id, to: "/tmp/note.pdf") { sent, total in
+if let note = try device.resolvePath("/Documents/note.pdf", storage: storage.id) {
+    try device.download(note.id, to: "/tmp/note.pdf") { sent, total in
         print("\(sent)/\(total)")
         return true  // return false to cancel
     }
 }
 
 // upload into a new folder
-let folderId = try device.createDirectory(name: "Backup", parentId: 0, storageId: storage.id)
-let newId = try device.uploadFile(
+let backup = try device.makeDirectory(named: "Backup", in: .root, storage: storage.id)
+let newId = try device.upload(
     from: "/tmp/report.pdf",
-    parentId: folderId,
-    storageId: storage.id,
-    filename: "report.pdf"
+    to: backup,
+    storage: storage.id,
+    as: "report.pdf"
 )
 
 // rename, move, delete
-try device.renameFile(id: newId, newName: "final-report.pdf")
+try device.rename(newId, to: "final-report.pdf")
 if device.supportsCapability(.moveObject) {
-    try device.moveObject(id: newId, toParentId: 0, storageId: storage.id)
+    try device.move(newId, to: .root, storage: storage.id)
 }
-try device.deleteObject(id: folderId)
+try device.delete(backup.id)
 ```
 
 `MTPDevice` opens the device in uncached mode and populates storage on init. All device operations are instance methods. The device is released automatically on deinit.
@@ -79,7 +79,7 @@ All fallible operations use typed throws (`throws(MTPError)`):
 
 ```swift
 do throws(MTPError) {
-    try device.deleteObject(id: 999)
+    try device.delete(objectId)
 } catch .objectNotFound(let id) {
     // ...
 } catch .operationFailed(let message) {
@@ -94,9 +94,12 @@ do throws(MTPError) {
 | Type | Description |
 |------|-------------|
 | `MTPDevice` | Device handle wrapping `LIBMTP_mtpdevice_t`. Released on deinit. |
-| `MTPRawDevice` | Discovered device before opening (bus, devnum, vendor, product). |
-| `MTPFileInfo` | Unified file/folder metadata (id, name, size, dates, isDirectory). |
+| `MTPRawDevice` | Discovered device before opening. Call `open()` to get an `MTPDevice`. |
+| `MTPFileInfo` | Unified file/folder metadata (id, name, size, dates, isDirectory, folder). |
 | `MTPStorageInfo` | Storage pool info (id, description, capacity, free space). |
+| `ObjectID` | Nominal wrapper for MTP object IDs. |
+| `StorageID` | Nominal wrapper for storage pool IDs. Use `.all` for all storages. |
+| `Folder` | Compile-time safe folder reference. Use `.root` for root directory. |
 | `MTPError` | Typed error enum covering all failure modes. |
 | `MTPDeviceCapability` | Device capability flags (moveObject, copyObject, etc.). |
 
@@ -129,4 +132,4 @@ Two-target SPM package:
 - **Clibmtp** — `.systemLibrary` wrapping `libmtp.h` via pkg-config
 - **SwiftMTP** — Pure Swift API layer with typed throws, `Sendable` value types, and automatic C memory management
 
-All public value types are `Sendable`. `MTPDevice` is a `final class` with `deinit`-based cleanup. The library operates statelessly — callers manage their own caching.
+All public value types are `Sendable`. `MTPDevice` is a `final class` with `deinit`-based cleanup. Internal C resource management uses `~Copyable` structs (`Upload`, `FileHandle`, `FileNode`, `FolderTree`) that guarantee cleanup via `deinit` instead of manual `defer`/`destroy` patterns. The library operates statelessly — callers manage their own caching.

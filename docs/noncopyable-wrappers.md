@@ -1,6 +1,8 @@
 # Noncopyable Wrappers for C Resource Management
 
-Replace raw pointer `defer`/`destroy` patterns with Swift 6.2 `~Copyable` structs that guarantee cleanup via `deinit`. The key design principle: **wrappers create the resource internally** — the `init` that takes a raw pointer is `fileprivate`, and the public/internal API is use-case specific types with descriptive names.
+> **Status: Implemented.** All wrappers and nominal types described below are live in `MTPCTypes.swift` and `MTPTypes.swift`. Public API uses `ObjectID`, `StorageID`, and `Folder` types. Method names follow Swift API Guidelines.
+
+Replace raw pointer `defer`/`destroy` patterns with Swift 6.2 `~Copyable` structs that guarantee cleanup via `deinit`. The key design principle: **wrappers create the resource internally** — the `init` that takes a raw pointer is `internal` (for cross-file iteration patterns), and the public/internal API is use-case specific types with descriptive names.
 
 ## Motivation: before and after
 
@@ -329,9 +331,9 @@ The two private recursive helpers (`_collectAllFolderIds`, `_collectChildFolders
 
 **`renameFolder`**: `Get_Folder_List` + `defer` + `Find_Folder` + `Set_Folder_Name` → `FolderTree(device:)` + `tree.rename()`
 
-## Nominal ID types
+## Nominal ID types (implemented)
 
-All IDs are currently `UInt32` — the compiler can't distinguish a storage ID from a file ID, or prevent uploading into a file instead of a folder. Three nominal types fix this:
+Three nominal types provide compile-time safety for IDs:
 
 ```swift
 struct ObjectID: RawRepresentable, Hashable, Sendable {
@@ -375,34 +377,33 @@ extension MTPFileInfo {
 APIs that target a parent directory take `Folder`, not `ObjectID`:
 
 ```
-uploadFile(from:, to: Folder, storage: StorageID, ...)
-createDirectory(name:, in: Folder, storage: StorageID) → Folder
-moveObject(id: ObjectID, to: Folder, storage: StorageID)
-listDirectory(in: Folder, storage: StorageID)
+upload(from:, to: Folder, storage: StorageID, as:, ...)
+makeDirectory(named:, in: Folder, storage: StorageID) → Folder
+move(_: ObjectID, to: Folder, storage: StorageID)
+contents(of: Folder, storage: StorageID)
 resolvePath(_:, storage: StorageID)
 ```
 
 APIs that operate on any object take `ObjectID`:
 
 ```
-downloadFile(id: ObjectID, ...)
-deleteObject(id: ObjectID)
-fileInfo(id: ObjectID) → MTPFileInfo
-renameFile(id: ObjectID, ...)
-renameFolder(id: ObjectID, ...)
+download(_: ObjectID, to:, ...)
+delete(_: ObjectID)
+info(for: ObjectID) → MTPFileInfo
+rename(_: ObjectID, to:)
 ```
 
 ### Usage example
 
 ```swift
-let entries = try device.listDirectory(in: .root, storage: storage.id)
+let entries = try device.contents(of: .root, storage: storage.id)
 let docs = entries.first { $0.name == "Documents" }!.folder!
 
-try device.uploadFile(from: "/tmp/report.pdf", to: docs, storage: storage.id)
-let backups = try device.createDirectory(name: "Backups", in: .root, storage: storage.id)
-try device.moveObject(id: fileId, to: backups, storage: storage.id)
+try device.upload(from: "/tmp/report.pdf", to: docs, storage: storage.id, as: "report.pdf")
+let backups = try device.makeDirectory(named: "Backups", in: .root, storage: storage.id)
+try device.move(fileId, to: backups, storage: storage.id)
 
-// device.uploadFile(from: path, to: fileId, ...)  // compile error — ObjectID is not Folder
+// device.upload(from: path, to: fileId, ...)  // compile error — ObjectID is not Folder
 ```
 
 ### What changes in public types
@@ -432,7 +433,7 @@ public let id: UInt32
 public let id: StorageID
 ```
 
-This is a **public API change** — callers that pass raw `UInt32` literals will need `ObjectID(rawValue:)` or `StorageID(rawValue:)`. `Folder.root` and `StorageID.all` cover the common `0` sentinels.
+This was a **public API change** — callers that pass raw `UInt32` literals need `ObjectID(rawValue:)` or `StorageID(rawValue:)`. `Folder.root` and `StorageID.all` cover the common `0` sentinels.
 
 ### Interaction with ~Copyable wrappers
 
@@ -467,11 +468,11 @@ struct FolderTree: ~Copyable {
 
 ## What does NOT change
 
-- No test changes — same behavior, structural cleanup only
-- `MTPDevice.swift` — its `defer { free(rawDevices) }` is for a C array, not a libmtp-managed resource
-- `MTPDeviceDiscovery.swift` — same
+- `MTPDeviceDiscovery.swift` — its `defer { free(rawDevices) }` is for a C array, not a libmtp-managed resource
+- `MTPStorageInfo+Device.swift` — storage linked list iteration has no alloc/free pair
+- `MTPProgressCallback.swift` — orthogonal concern
 
-## Future ideas (not in scope)
+## Future ideas
 
 ### MTPResult — error stack drain guarantee
 
@@ -495,7 +496,7 @@ Replaces `withUnsafeMutablePointer` stack pin for progress callbacks. Tradeoff: 
 
 ### Consuming MTPRawDevice → MTPDevice
 
-Store `LIBMTP_raw_device_t` by value in a ~Copyable `MTPRawDevice`. Consuming `open()` eliminates the double device scan. Public API break — worth it pre-1.0.
+~~Store `LIBMTP_raw_device_t` by value in a ~Copyable `MTPRawDevice`. Consuming `open()` eliminates the double device scan.~~ **Implemented** as `MTPRawDevice.open()` (mutating, not consuming — `MTPRawDevice` remains `Sendable`).
 
 ### MTPDevice as ~Copyable struct
 
