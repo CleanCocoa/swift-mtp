@@ -3,12 +3,12 @@ import Clibmtp
 struct Upload: ~Copyable {
 	private let pointer: UnsafeMutablePointer<LIBMTP_file_struct>
 
-	init?(filename: String, filesize: UInt64, parentId: UInt32, storageId: UInt32) {
+	init?(filename: String, filesize: UInt64, parent: Folder, storage: StorageID) {
 		guard let p = LIBMTP_new_file_t() else { return nil }
 		p.pointee.filename = strdup(filename)
 		p.pointee.filesize = filesize
-		p.pointee.parent_id = parentId
-		p.pointee.storage_id = storageId
+		p.pointee.parent_id = parent.id.rawValue
+		p.pointee.storage_id = storage.rawValue
 		p.pointee.filetype = LIBMTP_FILETYPE_UNKNOWN
 		self.pointer = p
 	}
@@ -42,7 +42,7 @@ struct Upload: ~Copyable {
 			self.result = result
 		}
 		deinit { LIBMTP_destroy_file_t(pointer) }
-		var itemId: UInt32 { pointer.pointee.item_id }
+		var itemId: ObjectID { ObjectID(rawValue: pointer.pointee.item_id) }
 		func toFileInfo() -> FileInfo { FileInfo(cFile: pointer) }
 	}
 }

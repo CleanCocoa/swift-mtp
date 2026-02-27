@@ -3,8 +3,8 @@ import Clibmtp
 struct FileHandle: ~Copyable {
 	private let pointer: UnsafeMutablePointer<LIBMTP_file_struct>
 
-	init?(device: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>, id: UInt32) {
-		guard let p = LIBMTP_Get_Filemetadata(device, id) else { return nil }
+	init?(device: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>, id: ObjectID) {
+		guard let p = LIBMTP_Get_Filemetadata(device, id.rawValue) else { return nil }
 		self.pointer = p
 	}
 

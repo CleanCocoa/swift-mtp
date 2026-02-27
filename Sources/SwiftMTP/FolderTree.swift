@@ -10,31 +10,31 @@ struct FolderTree: ~Copyable {
 
 	deinit { LIBMTP_destroy_folder_t(root) }
 
-	func collectAllFolderIds(into ids: inout Set<UInt32>) {
+	func collectAllFolderIds(into ids: inout Set<ObjectID>) {
 		_collectAllFolderIds(root, into: &ids)
 	}
 
 	func collectChildFolders(
-		parentId: UInt32,
+		parentId: ObjectID,
 		results: inout [FileInfo],
-		synthIds: inout Set<UInt32>
+		synthIds: inout Set<ObjectID>
 	) {
 		_collectChildFolders(root, parentId: parentId, results: &results, synthIds: &synthIds)
 	}
 
 	func rename(
 		device: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>,
-		folderId: UInt32,
+		folderId: ObjectID,
 		to newName: String
 	) -> (result: CInt, info: FileInfo)? {
-		guard let folder = LIBMTP_Find_Folder(root, folderId) else { return nil }
+		guard let folder = LIBMTP_Find_Folder(root, folderId.rawValue) else { return nil }
 		let result = LIBMTP_Set_Folder_Name(device, folder, newName)
 		return (result, FileInfo(cFolder: folder))
 	}
 }
 
-private func _collectAllFolderIds(_ folder: UnsafeMutablePointer<LIBMTP_folder_struct>, into ids: inout Set<UInt32>) {
-	ids.insert(folder.pointee.folder_id)
+private func _collectAllFolderIds(_ folder: UnsafeMutablePointer<LIBMTP_folder_struct>, into ids: inout Set<ObjectID>) {
+	ids.insert(ObjectID(rawValue: folder.pointee.folder_id))
 	if let child = folder.pointee.child {
 		_collectAllFolderIds(child, into: &ids)
 	}
@@ -45,13 +45,13 @@ private func _collectAllFolderIds(_ folder: UnsafeMutablePointer<LIBMTP_folder_s
 
 private func _collectChildFolders(
 	_ folder: UnsafeMutablePointer<LIBMTP_folder_struct>,
-	parentId: UInt32,
+	parentId: ObjectID,
 	results: inout [FileInfo],
-	synthIds: inout Set<UInt32>
+	synthIds: inout Set<ObjectID>
 ) {
-	if folder.pointee.parent_id == parentId {
+	if folder.pointee.parent_id == parentId.rawValue {
 		results.append(FileInfo(cFolder: folder))
-		synthIds.insert(folder.pointee.folder_id)
+		synthIds.insert(ObjectID(rawValue: folder.pointee.folder_id))
 	}
 	if let child = folder.pointee.child {
 		_collectChildFolders(child, parentId: parentId, results: &results, synthIds: &synthIds)
