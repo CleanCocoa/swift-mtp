@@ -99,12 +99,6 @@ import Clibmtp
     mtpInitialize()
 }
 
-@Test func `mtpDetectDevices returns empty without device`() throws {
-    mtpInitialize()
-    let devices = try mtpDetectDevices()
-    #expect(devices.isEmpty)
-}
-
 @Test func `withProgressCallback nil handler passes nil`() {
     withProgressCallback(nil) { callback, data in
         #expect(callback == nil)
@@ -120,32 +114,42 @@ import Clibmtp
     }
 }
 
-let deviceConnected = ProcessInfo.processInfo.environment["MTP_DEVICE_CONNECTED"] == "1"
+private let deviceConnected = ProcessInfo.processInfo.environment["MTP_DEVICE_CONNECTED"] == "1"
 
-@Test(.enabled(if: deviceConnected, "Skipping: no MTP device connected"))
-func `detect devices finds at least one`() throws {
+@Test(.disabled(if: deviceConnected, "Device is connected, detection will return results"))
+func `mtpDetectDevices returns empty without device`() throws {
     mtpInitialize()
     let devices = try mtpDetectDevices()
-    #expect(!devices.isEmpty)
+    #expect(devices.isEmpty)
 }
 
-@Test(.enabled(if: deviceConnected, "Skipping: no MTP device connected"))
-func `open device and read properties`() throws {
-    mtpInitialize()
-    let devices = try mtpDetectDevices()
-    let raw = try #require(devices.first)
-    let device = try MTPDevice(busLocation: raw.busLocation, devnum: raw.devnum)
-    #expect(device.manufacturerName != nil || device.modelName != nil || device.serialNumber != nil || device.friendlyName != nil || device.deviceVersion != nil)
-}
+@Suite(.serialized, .enabled(if: deviceConnected, "Skipping: no MTP device connected"))
+struct HardwareTests {
+    @Test func `detect devices finds at least one`() throws {
+        mtpInitialize()
+        let devices = try mtpDetectDevices()
+        #expect(!devices.isEmpty)
+    }
 
-@Test(.enabled(if: deviceConnected, "Skipping: no MTP device connected"))
-func `list root directory`() throws {
-    mtpInitialize()
-    let devices = try mtpDetectDevices()
-    let raw = try #require(devices.first)
-    let device = try MTPDevice(busLocation: raw.busLocation, devnum: raw.devnum)
-    let storages = device.storageInfo()
-    let storage = try #require(storages.first)
-    let entries = try device.listDirectory(storageId: storage.id, parentId: 0xFFFFFFFF)
-    #expect(entries.count >= 0)
+    @Test func `open device and read properties`() throws {
+        mtpInitialize()
+        let devices = try mtpDetectDevices()
+        let raw = try #require(devices.first)
+        let device = try MTPDevice(busLocation: raw.busLocation, devnum: raw.devnum)
+        #expect(device.manufacturerName != nil || device.modelName != nil || device.serialNumber != nil || device.friendlyName != nil || device.deviceVersion != nil)
+        let storages = device.storageInfo()
+        #expect(!storages.isEmpty)
+    }
+
+    @Test func `list root directory`() throws {
+        mtpInitialize()
+        let devices = try mtpDetectDevices()
+        let raw = try #require(devices.first)
+        let device = try MTPDevice(busLocation: raw.busLocation, devnum: raw.devnum)
+        let entries = try device.listDirectory(storageId: 0, parentId: 0)
+        #expect(!entries.isEmpty)
+        for entry in entries {
+            #expect(!entry.name.isEmpty)
+        }
+    }
 }
