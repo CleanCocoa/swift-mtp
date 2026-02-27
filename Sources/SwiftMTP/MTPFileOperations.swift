@@ -102,6 +102,7 @@ extension MTPDevice {
             }
             return
         }
+        _ = drainErrorStack(raw)
 
         guard let tree = FolderTree(device: raw) else {
             _ = drainErrorStack(raw)

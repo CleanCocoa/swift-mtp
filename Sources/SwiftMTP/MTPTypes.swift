@@ -16,7 +16,7 @@ public struct StorageID: RawRepresentable, Hashable, Sendable, CustomStringConve
 
 public struct Folder: Hashable, Sendable, CustomStringConvertible {
     public let id: ObjectID
-    public init(id: ObjectID) { self.id = id }
+    init(id: ObjectID) { self.id = id }
     public static let root = Folder(id: ObjectID(rawValue: 0))
     public var description: String { "Folder(\(id.rawValue))" }
 }
