@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+#MISE description="Format changed Swift source files"
+
+set -euo pipefail
+
+swift format --in-place --recursive --parallel ./Sources ./Tests

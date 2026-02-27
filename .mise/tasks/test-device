@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+#MISE description="Run all tests including hardware tests (MTP device must be connected)"
+
+set -euo pipefail
+
+export CLANG_MODULE_CACHE_PATH=".clang-module-cache"
+export MTP_DEVICE_CONNECTED=1
+
+swift test -j 8 --parallel --num-workers 8 -Xswiftc -suppress-warnings 2>&1 | bash .mise/helpers/swift-test-filter.sh
