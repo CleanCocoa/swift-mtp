@@ -88,3 +88,13 @@ import Clibmtp
         #expect(data != nil)
     }
 }
+
+@Test func `mtpInitialize succeeds`() {
+    mtpInitialize()
+}
+
+@Test func `mtpDetectDevices returns empty array without device`() throws {
+    mtpInitialize()
+    let devices = try mtpDetectDevices()
+    #expect(devices.isEmpty)
+}
