@@ -5,10 +5,9 @@ extension Device {
 		of parent: Folder = .root,
 		storage: StorageID = .all
 	) throws(MTPError) -> [FileInfo] {
-		let storageId = storage.rawValue
-		let parentId = parent.id.rawValue
-		var allFolderIds = Set<UInt32>()
-		var synthIds = Set<UInt32>()
+		let parentId = parent.id
+		var allFolderIds = Set<ObjectID>()
+		var synthIds = Set<ObjectID>()
 		var results: [FileInfo] = []
 
 		if let tree = FolderTree(device: raw) {
@@ -16,7 +15,7 @@ extension Device {
 			tree.collectChildFolders(parentId: parentId, results: &results, synthIds: &synthIds)
 		}
 
-		var cursor = FileNode.list(device: raw, storageId: storageId, parentId: parentId)
+		var cursor = FileNode.list(device: raw, storageId: storage, parentId: parentId)
 		if cursor == nil && allFolderIds.isEmpty {
 			let message = drainErrorStack(raw)
 			if message != "unknown error" {
@@ -62,16 +61,23 @@ extension Device {
 		try resolvePath(path, storage: storage.id)
 	}
 
+	public func resolvePath(_ path: Path, storage: StorageInfo) throws(MTPError) -> FileInfo? {
+		try resolvePath(path.description, storage: storage.id)
+	}
+
+	public func resolvePath(_ path: Path, storage: StorageID = .all) throws(MTPError) -> FileInfo? {
+		try resolvePath(path.description, storage: storage)
+	}
+
 	public func resolvePath(_ path: String, storage: StorageID = .all) throws(MTPError) -> FileInfo? {
-		let storageId = storage.rawValue
 		let components = path.split(separator: "/").map(String.init)
 		if components.isEmpty { return nil }
 
-		var currentParent: UInt32 = 0
+		var currentParent = ObjectID(rawValue: 0)
 		var lastMatch: FileInfo? = nil
 
 		for component in components {
-			var cursor = FileNode.list(device: raw, storageId: storageId, parentId: currentParent)
+			var cursor = FileNode.list(device: raw, storageId: storage, parentId: currentParent)
 			var found: FileInfo? = nil
 
 			while let rawPtr = cursor {
@@ -88,7 +94,7 @@ extension Device {
 				return nil
 			}
 
-			currentParent = match.id.rawValue
+			currentParent = match.id
 			lastMatch = match
 		}
 

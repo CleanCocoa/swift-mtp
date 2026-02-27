@@ -22,6 +22,10 @@ public struct Storage {
 		try device.resolvePath(path, storage: id)
 	}
 
+	public func resolvePath(_ path: Path) throws(MTPError) -> FileInfo? {
+		try device.resolvePath(path.description, storage: id)
+	}
+
 	@discardableResult
 	public func upload(
 		from localPath: String,

@@ -125,6 +125,36 @@ import Testing
 	#expect(storage.freeSpace == 32_000_000_000)
 }
 
+@Test func `StorageInfo usedSpace is maxCapacity minus freeSpace`() {
+	let storage = StorageInfo(
+		id: StorageID(rawValue: 1),
+		description: "",
+		maxCapacity: 100,
+		freeSpace: 40
+	)
+	#expect(storage.usedSpace == 60)
+}
+
+@Test func `StorageInfo percentFull is ratio of used to max`() {
+	let storage = StorageInfo(
+		id: StorageID(rawValue: 1),
+		description: "",
+		maxCapacity: 200,
+		freeSpace: 50
+	)
+	#expect(storage.percentFull == 0.75)
+}
+
+@Test func `StorageInfo percentFull is zero when maxCapacity is zero`() {
+	let storage = StorageInfo(
+		id: StorageID(rawValue: 1),
+		description: "",
+		maxCapacity: 0,
+		freeSpace: 0
+	)
+	#expect(storage.percentFull == 0.0)
+}
+
 @Test func `Folder equality for same ID`() {
 	let a = Folder(id: ObjectID(rawValue: 7))
 	let b = Folder(id: ObjectID(rawValue: 7))
@@ -205,6 +235,44 @@ import Testing
 
 @Test func `Event init returns nil for EVENT_NONE`() {
 	#expect(Event(cEvent: LIBMTP_EVENT_NONE, param: 0) == nil)
+}
+
+@Test func `Path with 3 components has count 3`() {
+	let path: Path = "Music/Albums/track.mp3"
+	#expect(path.components.count == 3)
+}
+
+@Test func `Path empty string returns nil`() {
+	let s = ""
+	#expect(Path(s) == nil)
+}
+
+@Test func `Path slash-only returns nil`() {
+	let s = "/"
+	#expect(Path(s) == nil)
+}
+
+@Test func `Path normalizes slashes and filters empty`() {
+	let s = "/Music//Albums/"
+	#expect(Path(s)?.components == ["Music", "Albums"])
+}
+
+@Test func `Path conforms to ExpressibleByStringLiteral`() {
+	let path: Path = "Music/Albums"
+	#expect(path.components == ["Music", "Albums"])
+}
+
+@Test func `Path description returns slash-joined components`() {
+	let path: Path = "Music/Albums/track.mp3"
+	#expect(path.description == "Music/Albums/track.mp3")
+}
+
+@Test func `Path equality for same components`() {
+	let a: Path = "Music/Albums"
+	let b: Path = "Music/Albums"
+	let c: Path = "Music/Other"
+	#expect(a == b)
+	#expect(a != c)
 }
 
 private let deviceConnected = ProcessInfo.processInfo.environment["MTP_DEVICE_CONNECTED"] == "1"

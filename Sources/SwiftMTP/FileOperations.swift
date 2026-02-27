@@ -40,8 +40,8 @@ extension Device {
 			let upload = Upload(
 				filename: filename,
 				filesize: fileSize,
-				parentId: parent.id.rawValue,
-				storageId: storage.rawValue
+				parent: parent,
+				storage: storage
 			)
 		else {
 			throw MTPError.operationFailed("failed to allocate file metadata")
@@ -60,7 +60,7 @@ extension Device {
 	}
 
 	public func info(for id: ObjectID) throws(MTPError) -> FileInfo {
-		guard let handle = FileHandle(device: raw, id: id.rawValue) else {
+		guard let handle = FileHandle(device: raw, id: id) else {
 			_ = drainErrorStack(raw)
 			throw MTPError.objectNotFound(id: id)
 		}
@@ -127,7 +127,7 @@ extension Device {
 
 	@discardableResult
 	public func rename(_ id: ObjectID, to newName: String) throws(MTPError) -> FileInfo {
-		if let handle = FileHandle(device: raw, id: id.rawValue) {
+		if let handle = FileHandle(device: raw, id: id) {
 			let ret = handle.rename(device: raw, to: newName)
 			if ret != 0 {
 				let message = drainErrorStack(raw)
@@ -141,7 +141,7 @@ extension Device {
 			_ = drainErrorStack(raw)
 			throw MTPError.objectNotFound(id: id)
 		}
-		guard let (ret, info) = tree.rename(device: raw, folderId: id.rawValue, to: newName) else {
+		guard let (ret, info) = tree.rename(device: raw, folderId: id, to: newName) else {
 			throw MTPError.objectNotFound(id: id)
 		}
 		if ret != 0 {
