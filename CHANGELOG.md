@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.0] — 2026-02-28
+
+### Added
+- `DeviceNumber` nominal wrapper type for USB device numbers (replaces raw `UInt8`)
+- `ObjectID.root` static constant (mirrors `Folder.root` and `StorageID.all`)
+- Inline docstrings documenting implicit C contracts (memory ownership, callback lifetimes,
+  error stack semantics, thread safety) on all `~Copyable` wrappers and key functions
+
+### Changed
+- `RawDevice.devnum`, `Device.init(devnum:)`, and `MTPError.connectionFailed(devnum:)` now
+  use `DeviceNumber` instead of raw `UInt8`
+- README updated for current type inventory, sorting API, and thread-safety notes
+
 ## [0.3.0] — 2026-02-27
 
 ### Added

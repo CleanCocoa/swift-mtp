@@ -1,6 +1,6 @@
 # SwiftMTP
 
-Swift wrapper around [libmtp](https://github.com/libmtp/libmtp) for MTP device access on macOS. Provides device discovery, file management (list, upload, download, delete, rename, move, mkdir), and storage inspection using libmtp's uncached mode with no internal caching.
+Swift wrapper around [libmtp](https://github.com/libmtp/libmtp) for MTP device access on macOS. Provides device discovery, file management (list, upload, download, delete, rename, move, mkdir), sorting, and storage inspection using libmtp's uncached mode with no internal caching.
 
 ## Installation
 
@@ -31,7 +31,8 @@ targets: [
 SwiftMTP offers an abstraction over the `libmtp` C API that makes it ergonomic to use, and avoid common pitfalls in your code base:
 
 - `Storage` is bound to a device, so you don't need to schlep both device and storage pointers.
-
+- Nominal ID types prevent mixing up object, storage, and folder IDs at compile time.
+- `~Copyable` wrappers guarantee C resource cleanup — no manual `defer`/`destroy` calls.
 
 ```swift
 import SwiftMTP
@@ -47,7 +48,7 @@ let storage = device.defaultStorage!
 
 // list root and find a file by name
 let root = try storage.contents()
-for entry in root {
+for entry in root.sorted(.directoriesFirst) {
     print(entry.name, entry.isDirectory ? "dir" : "\(entry.size) bytes")
 }
 
@@ -61,16 +62,16 @@ if let note = try storage.resolvePath("/Documents/note.pdf") {
 
 // upload into a new folder
 let backup = try storage.makeDirectory(named: "Backup", in: .root)
-let newId = try storage.upload(
+let uploaded = try storage.upload(
     from: "/tmp/report.pdf",
-    to: backup,
+    to: backup.folder!,
     as: "report.pdf"
 )
 
 // rename, move, delete
-try device.rename(newId, to: "final-report.pdf")
+try device.rename(uploaded.id, to: "final-report.pdf")
 if device.supportsCapability(.moveObject) {
-    try storage.move(newId, to: .root)
+    try storage.move(uploaded.id, to: .root)
 }
 try device.delete(backup.id)
 
@@ -88,7 +89,20 @@ Task.detached {
 }
 ```
 
-`Device` opens the device in uncached mode and populates storage on init. All device operations are instance methods. The device is released automatically on deinit.
+### Sorting
+
+`FileInfo` collections support enum-based sorting with full type inference:
+
+```swift
+let entries = try storage.contents()
+entries.sorted(.byName)              // case-insensitive, Finder-style ("file2" < "file10")
+entries.sorted(.byNameDescending)
+entries.sorted(.bySize)
+entries.sorted(.bySizeDescending)
+entries.sorted(.byDate)
+entries.sorted(.byDateDescending)
+entries.sorted(.directoriesFirst)    // dirs before files, then by name within each group
+```
 
 ### Error Handling
 
@@ -110,21 +124,27 @@ do throws(MTPError) {
 
 | Type | Description |
 |------|-------------|
-| `Device` | Device handle wrapping `LIBMTP_mtpdevice_t`. Released on deinit. |
-| `RawDevice` | Discovered device before opening. Call `open()` to get an `Device`. |
+| `Device` | Device handle wrapping `LIBMTP_mtpdevice_t`. Released on deinit. Not thread-safe. |
+| `RawDevice` | Discovered device before opening. Call `open()` to get a `Device`. |
 | `FileInfo` | Unified file/folder metadata (id, name, size, dates, isDirectory, folder). |
+| `FileInfo.SortOrder` | Enum-based sorting: `.byName`, `.bySize`, `.byDate`, `.directoriesFirst`, etc. |
 | `Storage` | Device-bound storage handle for scoped operations (contents, upload, mkdir, move). |
-| `StorageInfo` | Storage pool value type (id, description, capacity, free space). |
-| `ObjectID` | Nominal wrapper for MTP object IDs. |
-| `StorageID` | Nominal wrapper for storage pool IDs. Use `.all` for all storages. |
-| `Folder` | Compile-time safe folder reference. Use `.root` for root directory. |
+| `StorageInfo` | Storage pool value type (id, description, capacity, free space, usedSpace, percentFull). |
+| `ObjectID` | Nominal wrapper for MTP object IDs. `.root` for the root object. |
+| `StorageID` | Nominal wrapper for storage pool IDs. `.all` for all storages. |
+| `Folder` | Compile-time safe folder reference. `.root` for the root directory. |
+| `Path` | Type-safe path with component splitting. `ExpressibleByStringLiteral`. |
+| `BusLocation` | Nominal wrapper for USB bus location. |
+| `DeviceNumber` | Nominal wrapper for USB device number. |
+| `VendorID` | Nominal wrapper for USB vendor ID (hex description). |
+| `ProductID` | Nominal wrapper for USB product ID (hex description). |
 | `Event` | Event enum for device notifications (store/object added/removed, property changed). |
 | `MTPError` | Typed error enum covering all failure modes. |
 | `DeviceCapability` | Device capability flags (moveObject, copyObject, etc.). |
 
 ## Testing
 
-21 unit tests run without hardware, 3 require an MTP device:
+39 unit tests run without hardware, 3 require an MTP device:
 
 ```sh
 swift test
@@ -140,4 +160,4 @@ Two-target SPM package (Swift 6.2, macOS 26):
 - **Clibmtp** — `.systemLibrary` wrapping `libmtp.h` via pkg-config
 - **SwiftMTP** — Pure Swift API layer with typed throws, `Sendable` value types, and automatic C memory management
 
-All public value types are `Sendable`. `Device` is a `final class` with `deinit`-based cleanup. Internal C resource management uses `~Copyable` structs (`Upload`, `FileHandle`, `FileNode`, `FolderTree`) that guarantee cleanup via `deinit` instead of manual `defer`/`destroy` patterns. Nominal ID types (`ObjectID`, `StorageID`, `Folder`) prevent compile-time confusion between storage, object, and parent folder IDs. The library operates statelessly — callers manage their own caching.
+All public value types are `Sendable`. `Device` is a `final class` with `deinit`-based cleanup — it is **not thread-safe** (libmtp uses no locking). Internal C resource management uses `~Copyable` structs (`Upload`, `FileHandle`, `FileNode`, `FolderTree`) that guarantee cleanup via `deinit`. Implicit C contracts (memory ownership, callback lifetimes, error stack semantics) are documented in docstrings on each wrapper type. The library operates statelessly — callers manage their own caching.
