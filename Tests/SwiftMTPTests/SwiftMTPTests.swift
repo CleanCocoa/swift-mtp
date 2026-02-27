@@ -107,3 +107,7 @@ import Clibmtp
 @Test func `storageInfo method exists on MTPDevice`() {
     #expect(true)
 }
+
+@Test func `listDirectory method signature compiles`() {
+    #expect(true)
+}
