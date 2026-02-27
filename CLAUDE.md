@@ -1,0 +1,2 @@
+- Create git commits as you progress, as small as possible, for every feature/fix/refactoring you do right after you do them.
+- Use red/green testing, ask haiku subagents for refactoring review.
