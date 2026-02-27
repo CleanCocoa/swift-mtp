@@ -7,8 +7,8 @@ extension Device {
 		to localPath: String,
 		progress: ProgressHandler? = nil
 	) throws(MTPError) {
-		let ret = withProgressCallback(progress) { callback, data in
-			LIBMTP_Get_File_To_File(raw, id.rawValue, localPath, callback, data)
+		let ret = withProgressCallback(progress) { callback, context in
+			LIBMTP_Get_File_To_File(raw, id.rawValue, localPath, callback, context)
 		}
 		if ret != 0 {
 			let message = drainErrorStack(raw)
@@ -47,8 +47,8 @@ extension Device {
 			throw MTPError.operationFailed("failed to allocate file metadata")
 		}
 
-		let ret = withProgressCallback(progress) { callback, data in
-			upload.send(device: raw, from: localPath, callback: callback, data: data)
+		let ret = withProgressCallback(progress) { callback, context in
+			upload.send(device: raw, from: localPath, callback: callback, data: context)
 		}
 		if ret != 0 {
 			let message = drainErrorStack(raw)

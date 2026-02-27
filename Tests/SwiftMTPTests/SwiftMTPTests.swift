@@ -162,17 +162,17 @@ import Testing
 }
 
 @Test func `withProgressCallback nil handler passes nil`() {
-	withProgressCallback(nil) { callback, data in
+	withProgressCallback(nil) { callback, context in
 		#expect(callback == nil)
-		#expect(data == nil)
+		#expect(context == nil)
 	}
 }
 
 @Test func `withProgressCallback non-nil handler provides pointers`() {
 	let handler: ProgressHandler = { _, _ in true }
-	withProgressCallback(handler) { callback, data in
+	withProgressCallback(handler) { callback, context in
 		#expect(callback != nil)
-		#expect(data != nil)
+		#expect(context != nil)
 	}
 }
 
