@@ -119,3 +119,7 @@ import Clibmtp
 @Test func `mutation operations methods compile`() {
     #expect(true)
 }
+
+@Test func `resolvePath method signature compiles`() {
+    #expect(true)
+}

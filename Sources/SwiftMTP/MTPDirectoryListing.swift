@@ -51,6 +51,39 @@ extension MTPDevice {
 
         return results
     }
+
+    public func resolvePath(_ path: String, storageId: UInt32 = 0) throws(MTPError) -> MTPFileInfo? {
+        let components = path.split(separator: "/").map(String.init)
+        if components.isEmpty { return nil }
+
+        var currentParent: UInt32 = 0
+        var lastMatch: MTPFileInfo? = nil
+
+        for component in components {
+            var fileList = LIBMTP_Get_Files_And_Folders(raw, storageId, currentParent)
+            var found: MTPFileInfo? = nil
+
+            while let file = fileList {
+                let next = file.pointee.next
+                let info = MTPFileInfo(cFile: file)
+                LIBMTP_destroy_file_t(file)
+
+                if found == nil && info.name == component {
+                    found = info
+                }
+                fileList = next
+            }
+
+            guard let match = found else {
+                return nil
+            }
+
+            currentParent = match.id
+            lastMatch = match
+        }
+
+        return lastMatch
+    }
 }
 
 private func collectAllFolderIds(_ folder: UnsafeMutablePointer<LIBMTP_folder_struct>, into ids: inout Set<UInt32>) {
