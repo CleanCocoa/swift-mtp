@@ -28,6 +28,11 @@ targets: [
 
 ## Usage
 
+SwiftMTP offers an abstraction over the `libmtp` C API that makes it ergonomic to use, and avoid common pitfalls in your code base:
+
+- `Storage` is bound to a device, so you don't need to schlep both device and storage pointers.
+
+
 ```swift
 import SwiftMTP
 
@@ -83,7 +88,7 @@ Task.detached {
 }
 ```
 
-`MTPDevice` opens the device in uncached mode and populates storage on init. All device operations are instance methods. The device is released automatically on deinit.
+`Device` opens the device in uncached mode and populates storage on init. All device operations are instance methods. The device is released automatically on deinit.
 
 ### Error Handling
 
@@ -105,17 +110,17 @@ do throws(MTPError) {
 
 | Type | Description |
 |------|-------------|
-| `MTPDevice` | Device handle wrapping `LIBMTP_mtpdevice_t`. Released on deinit. |
-| `MTPRawDevice` | Discovered device before opening. Call `open()` to get an `MTPDevice`. |
-| `MTPFileInfo` | Unified file/folder metadata (id, name, size, dates, isDirectory, folder). |
-| `MTPStorage` | Device-bound storage handle for scoped operations (contents, upload, mkdir, move). |
-| `MTPStorageInfo` | Storage pool value type (id, description, capacity, free space). |
+| `Device` | Device handle wrapping `LIBMTP_mtpdevice_t`. Released on deinit. |
+| `RawDevice` | Discovered device before opening. Call `open()` to get an `Device`. |
+| `FileInfo` | Unified file/folder metadata (id, name, size, dates, isDirectory, folder). |
+| `Storage` | Device-bound storage handle for scoped operations (contents, upload, mkdir, move). |
+| `StorageInfo` | Storage pool value type (id, description, capacity, free space). |
 | `ObjectID` | Nominal wrapper for MTP object IDs. |
 | `StorageID` | Nominal wrapper for storage pool IDs. Use `.all` for all storages. |
 | `Folder` | Compile-time safe folder reference. Use `.root` for root directory. |
-| `MTPEvent` | Event enum for device notifications (store/object added/removed, property changed). |
+| `Event` | Event enum for device notifications (store/object added/removed, property changed). |
 | `MTPError` | Typed error enum covering all failure modes. |
-| `MTPDeviceCapability` | Device capability flags (moveObject, copyObject, etc.). |
+| `DeviceCapability` | Device capability flags (moveObject, copyObject, etc.). |
 
 ## Testing
 
@@ -135,4 +140,4 @@ Two-target SPM package (Swift 6.2, macOS 26):
 - **Clibmtp** — `.systemLibrary` wrapping `libmtp.h` via pkg-config
 - **SwiftMTP** — Pure Swift API layer with typed throws, `Sendable` value types, and automatic C memory management
 
-All public value types are `Sendable`. `MTPDevice` is a `final class` with `deinit`-based cleanup. Internal C resource management uses `~Copyable` structs (`Upload`, `FileHandle`, `FileNode`, `FolderTree`) that guarantee cleanup via `deinit` instead of manual `defer`/`destroy` patterns. Nominal ID types (`ObjectID`, `StorageID`, `Folder`) prevent compile-time confusion between storage, object, and parent folder IDs. The library operates statelessly — callers manage their own caching.
+All public value types are `Sendable`. `Device` is a `final class` with `deinit`-based cleanup. Internal C resource management uses `~Copyable` structs (`Upload`, `FileHandle`, `FileNode`, `FolderTree`) that guarantee cleanup via `deinit` instead of manual `defer`/`destroy` patterns. Nominal ID types (`ObjectID`, `StorageID`, `Folder`) prevent compile-time confusion between storage, object, and parent folder IDs. The library operates statelessly — callers manage their own caching.

@@ -1,7 +1,7 @@
 import Foundation
 @preconcurrency import Clibmtp
 
-public struct MTPFileInfo: Sendable {
+public struct FileInfo: Sendable {
     public let id: ObjectID
     public let parentId: ObjectID
     public let storageId: StorageID

@@ -38,7 +38,7 @@ struct FileHandle: ~Copyable {
 
     deinit { LIBMTP_destroy_file_t(pointer) }
 
-    func toFileInfo() -> MTPFileInfo { MTPFileInfo(cFile: pointer) }
+    func toFileInfo() -> FileInfo { FileInfo(cFile: pointer) }
 
     func rename(
         device: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>,
@@ -68,7 +68,7 @@ struct FileNode: ~Copyable {
 
     var next: UnsafeMutablePointer<LIBMTP_file_struct>? { pointer.pointee.next }
 
-    func toFileInfo() -> MTPFileInfo { MTPFileInfo(cFile: pointer) }
+    func toFileInfo() -> FileInfo { FileInfo(cFile: pointer) }
     var itemId: UInt32 { pointer.pointee.item_id }
     var parentId: UInt32 { pointer.pointee.parent_id }
     var isFolder: Bool { pointer.pointee.filetype == LIBMTP_FILETYPE_FOLDER }
@@ -98,7 +98,7 @@ struct FolderTree: ~Copyable {
 
     func collectChildFolders(
         parentId: UInt32,
-        results: inout [MTPFileInfo],
+        results: inout [FileInfo],
         synthIds: inout Set<UInt32>
     ) {
         _collectChildFolders(root, parentId: parentId, results: &results, synthIds: &synthIds)
@@ -127,11 +127,11 @@ private func _collectAllFolderIds(_ folder: UnsafeMutablePointer<LIBMTP_folder_s
 private func _collectChildFolders(
     _ folder: UnsafeMutablePointer<LIBMTP_folder_struct>,
     parentId: UInt32,
-    results: inout [MTPFileInfo],
+    results: inout [FileInfo],
     synthIds: inout Set<UInt32>
 ) {
     if folder.pointee.parent_id == parentId {
-        results.append(MTPFileInfo(cFolder: folder))
+        results.append(FileInfo(cFolder: folder))
         synthIds.insert(folder.pointee.folder_id)
     }
     if let child = folder.pointee.child {

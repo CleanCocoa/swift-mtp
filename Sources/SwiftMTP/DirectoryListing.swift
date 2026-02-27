@@ -1,15 +1,15 @@
 import Clibmtp
 
-extension MTPDevice {
+extension Device {
     public func contents(
         of parent: Folder = .root,
         storage: StorageID = .all
-    ) throws(MTPError) -> [MTPFileInfo] {
+    ) throws(MTPError) -> [FileInfo] {
         let storageId = storage.rawValue
         let parentId = parent.id.rawValue
         var allFolderIds = Set<UInt32>()
         var synthIds = Set<UInt32>()
-        var results: [MTPFileInfo] = []
+        var results: [FileInfo] = []
 
         if let tree = FolderTree(device: raw) {
             tree.collectAllFolderIds(into: &allFolderIds)
@@ -32,7 +32,7 @@ extension MTPDevice {
             if synthIds.contains(node.itemId) { continue }
             if allFolderIds.contains(node.itemId) && !node.isFolder {
                 let info = node.toFileInfo()
-                results.append(MTPFileInfo(
+                results.append(FileInfo(
                     id: info.id, parentId: info.parentId, storageId: info.storageId,
                     name: info.name, size: info.size, modificationDate: info.modificationDate,
                     isDirectory: true
@@ -47,26 +47,26 @@ extension MTPDevice {
 
     public func contents(
         of parent: Folder = .root,
-        storage: MTPStorageInfo
-    ) throws(MTPError) -> [MTPFileInfo] {
+        storage: StorageInfo
+    ) throws(MTPError) -> [FileInfo] {
         try contents(of: parent, storage: storage.id)
     }
 
-    public func resolvePath(_ path: String, storage: MTPStorageInfo) throws(MTPError) -> MTPFileInfo? {
+    public func resolvePath(_ path: String, storage: StorageInfo) throws(MTPError) -> FileInfo? {
         try resolvePath(path, storage: storage.id)
     }
 
-    public func resolvePath(_ path: String, storage: StorageID = .all) throws(MTPError) -> MTPFileInfo? {
+    public func resolvePath(_ path: String, storage: StorageID = .all) throws(MTPError) -> FileInfo? {
         let storageId = storage.rawValue
         let components = path.split(separator: "/").map(String.init)
         if components.isEmpty { return nil }
 
         var currentParent: UInt32 = 0
-        var lastMatch: MTPFileInfo? = nil
+        var lastMatch: FileInfo? = nil
 
         for component in components {
             var cursor = FileNode.list(device: raw, storageId: storageId, parentId: currentParent)
-            var found: MTPFileInfo? = nil
+            var found: FileInfo? = nil
 
             while let rawPtr = cursor {
                 let node = FileNode(rawPtr)

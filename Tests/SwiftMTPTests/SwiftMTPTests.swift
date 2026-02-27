@@ -53,8 +53,8 @@ import Clibmtp
     #expect(e9 == .deviceDisconnected)
 }
 
-@Test func `MTPRawDevice stores properties`() {
-    let dev = MTPRawDevice(busLocation: 1, devnum: 2, vendor: "Acme", vendorId: 0x1234, product: "Widget", productId: 0x5678)
+@Test func `RawDevice stores properties`() {
+    let dev = RawDevice(busLocation: 1, devnum: 2, vendor: "Acme", vendorId: 0x1234, product: "Widget", productId: 0x5678)
     #expect(dev.busLocation == 1)
     #expect(dev.devnum == 2)
     #expect(dev.vendor == "Acme")
@@ -63,9 +63,9 @@ import Clibmtp
     #expect(dev.productId == 0x5678)
 }
 
-@Test func `MTPFileInfo stores file properties`() {
+@Test func `FileInfo stores file properties`() {
     let date = Date(timeIntervalSince1970: 1000)
-    let info = MTPFileInfo(id: ObjectID(rawValue: 1), parentId: ObjectID(rawValue: 0), storageId: StorageID(rawValue: 100), name: "test.txt", size: 1024, modificationDate: date, isDirectory: false)
+    let info = FileInfo(id: ObjectID(rawValue: 1), parentId: ObjectID(rawValue: 0), storageId: StorageID(rawValue: 100), name: "test.txt", size: 1024, modificationDate: date, isDirectory: false)
     #expect(info.id == ObjectID(rawValue: 1))
     #expect(info.parentId == ObjectID(rawValue: 0))
     #expect(info.storageId == StorageID(rawValue: 100))
@@ -76,8 +76,8 @@ import Clibmtp
     #expect(info.folder == nil)
 }
 
-@Test func `MTPFileInfo stores directory properties`() {
-    let dir = MTPFileInfo(id: ObjectID(rawValue: 5), parentId: ObjectID(rawValue: 0), storageId: StorageID(rawValue: 200), name: "Photos", size: 0, modificationDate: .distantPast, isDirectory: true)
+@Test func `FileInfo stores directory properties`() {
+    let dir = FileInfo(id: ObjectID(rawValue: 5), parentId: ObjectID(rawValue: 0), storageId: StorageID(rawValue: 200), name: "Photos", size: 0, modificationDate: .distantPast, isDirectory: true)
     #expect(dir.id == ObjectID(rawValue: 5))
     #expect(dir.parentId == ObjectID(rawValue: 0))
     #expect(dir.storageId == StorageID(rawValue: 200))
@@ -88,8 +88,8 @@ import Clibmtp
     #expect(dir.folder == Folder(id: ObjectID(rawValue: 5)))
 }
 
-@Test func `MTPStorageInfo stores properties`() {
-    let storage = MTPStorageInfo(id: StorageID(rawValue: 0xABCD), description: "Internal Storage", maxCapacity: 64_000_000_000, freeSpace: 32_000_000_000)
+@Test func `StorageInfo stores properties`() {
+    let storage = StorageInfo(id: StorageID(rawValue: 0xABCD), description: "Internal Storage", maxCapacity: 64_000_000_000, freeSpace: 32_000_000_000)
     #expect(storage.id == StorageID(rawValue: 0xABCD))
     #expect(storage.description == "Internal Storage")
     #expect(storage.maxCapacity == 64_000_000_000)
@@ -122,8 +122,8 @@ import Clibmtp
     #expect(Folder.root.description == "Folder(0)")
 }
 
-@Test func `MTPDeviceCapability has all cases`() {
-    let caps: [MTPDeviceCapability] = [.moveObject, .copyObject, .getPartialObject, .sendPartialObject, .editObjects]
+@Test func `DeviceCapability has all cases`() {
+    let caps: [DeviceCapability] = [.moveObject, .copyObject, .getPartialObject, .sendPartialObject, .editObjects]
     #expect(caps.count == 5)
 }
 
@@ -147,35 +147,35 @@ import Clibmtp
     }
 }
 
-@Test func `MTPEvent is Equatable`() {
-    let a = MTPEvent.objectAdded(ObjectID(rawValue: 1))
-    let b = MTPEvent.objectAdded(ObjectID(rawValue: 1))
-    let c = MTPEvent.objectAdded(ObjectID(rawValue: 2))
-    let d = MTPEvent.objectRemoved(ObjectID(rawValue: 1))
+@Test func `Event is Equatable`() {
+    let a = Event.objectAdded(ObjectID(rawValue: 1))
+    let b = Event.objectAdded(ObjectID(rawValue: 1))
+    let c = Event.objectAdded(ObjectID(rawValue: 2))
+    let d = Event.objectRemoved(ObjectID(rawValue: 1))
     #expect(a == b)
     #expect(a != c)
     #expect(a != d)
-    #expect(MTPEvent.devicePropertyChanged == .devicePropertyChanged)
+    #expect(Event.devicePropertyChanged == .devicePropertyChanged)
 }
 
-@Test func `MTPEvent is Sendable`() {
-    let _: any Sendable = MTPEvent.storeAdded(StorageID(rawValue: 1))
-    let _: any Sendable = MTPEvent.storeRemoved(StorageID(rawValue: 1))
-    let _: any Sendable = MTPEvent.objectAdded(ObjectID(rawValue: 1))
-    let _: any Sendable = MTPEvent.objectRemoved(ObjectID(rawValue: 1))
-    let _: any Sendable = MTPEvent.devicePropertyChanged
+@Test func `Event is Sendable`() {
+    let _: any Sendable = Event.storeAdded(StorageID(rawValue: 1))
+    let _: any Sendable = Event.storeRemoved(StorageID(rawValue: 1))
+    let _: any Sendable = Event.objectAdded(ObjectID(rawValue: 1))
+    let _: any Sendable = Event.objectRemoved(ObjectID(rawValue: 1))
+    let _: any Sendable = Event.devicePropertyChanged
 }
 
-@Test func `MTPEvent init from C constants`() {
-    #expect(MTPEvent(cEvent: LIBMTP_EVENT_STORE_ADDED, param: 5) == .storeAdded(StorageID(rawValue: 5)))
-    #expect(MTPEvent(cEvent: LIBMTP_EVENT_STORE_REMOVED, param: 6) == .storeRemoved(StorageID(rawValue: 6)))
-    #expect(MTPEvent(cEvent: LIBMTP_EVENT_OBJECT_ADDED, param: 7) == .objectAdded(ObjectID(rawValue: 7)))
-    #expect(MTPEvent(cEvent: LIBMTP_EVENT_OBJECT_REMOVED, param: 8) == .objectRemoved(ObjectID(rawValue: 8)))
-    #expect(MTPEvent(cEvent: LIBMTP_EVENT_DEVICE_PROPERTY_CHANGED, param: 0) == .devicePropertyChanged)
+@Test func `Event init from C constants`() {
+    #expect(Event(cEvent: LIBMTP_EVENT_STORE_ADDED, param: 5) == .storeAdded(StorageID(rawValue: 5)))
+    #expect(Event(cEvent: LIBMTP_EVENT_STORE_REMOVED, param: 6) == .storeRemoved(StorageID(rawValue: 6)))
+    #expect(Event(cEvent: LIBMTP_EVENT_OBJECT_ADDED, param: 7) == .objectAdded(ObjectID(rawValue: 7)))
+    #expect(Event(cEvent: LIBMTP_EVENT_OBJECT_REMOVED, param: 8) == .objectRemoved(ObjectID(rawValue: 8)))
+    #expect(Event(cEvent: LIBMTP_EVENT_DEVICE_PROPERTY_CHANGED, param: 0) == .devicePropertyChanged)
 }
 
-@Test func `MTPEvent init returns nil for EVENT_NONE`() {
-    #expect(MTPEvent(cEvent: LIBMTP_EVENT_NONE, param: 0) == nil)
+@Test func `Event init returns nil for EVENT_NONE`() {
+    #expect(Event(cEvent: LIBMTP_EVENT_NONE, param: 0) == nil)
 }
 
 private let deviceConnected = ProcessInfo.processInfo.environment["MTP_DEVICE_CONNECTED"] == "1"

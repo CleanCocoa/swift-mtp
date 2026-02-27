@@ -1,6 +1,6 @@
 @preconcurrency import Clibmtp
 
-public enum MTPEvent: Sendable, Equatable {
+public enum Event: Sendable, Equatable {
     case storeAdded(StorageID)
     case storeRemoved(StorageID)
     case objectAdded(ObjectID)

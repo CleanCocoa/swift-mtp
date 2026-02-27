@@ -1,7 +1,7 @@
 import Clibmtp
 import Foundation
 
-extension MTPDevice {
+extension Device {
     public func download(
         _ id: ObjectID,
         to localPath: String,
@@ -57,7 +57,7 @@ extension MTPDevice {
         return ObjectID(rawValue: upload.itemId)
     }
 
-    public func info(for id: ObjectID) throws(MTPError) -> MTPFileInfo {
+    public func info(for id: ObjectID) throws(MTPError) -> FileInfo {
         guard let handle = FileHandle(device: raw, id: id.rawValue) else {
             _ = drainErrorStack(raw)
             throw MTPError.objectNotFound(id: id)
@@ -97,18 +97,18 @@ extension MTPDevice {
     public func upload(
         from localPath: String,
         to parent: Folder,
-        storage: MTPStorageInfo,
+        storage: StorageInfo,
         as filename: String,
         progress: ProgressHandler? = nil
     ) throws(MTPError) -> ObjectID {
         try upload(from: localPath, to: parent, storage: storage.id, as: filename, progress: progress)
     }
 
-    public func makeDirectory(named name: String, in parent: Folder, storage: MTPStorageInfo) throws(MTPError) -> Folder {
+    public func makeDirectory(named name: String, in parent: Folder, storage: StorageInfo) throws(MTPError) -> Folder {
         try makeDirectory(named: name, in: parent, storage: storage.id)
     }
 
-    public func move(_ id: ObjectID, to parent: Folder, storage: MTPStorageInfo) throws(MTPError) {
+    public func move(_ id: ObjectID, to parent: Folder, storage: StorageInfo) throws(MTPError) {
         try move(id, to: parent, storage: storage.id)
     }
 

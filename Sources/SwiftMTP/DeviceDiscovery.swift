@@ -4,7 +4,7 @@ public func mtpInitialize() {
     LIBMTP_Init()
 }
 
-public func mtpDetectDevices() throws(MTPError) -> [MTPRawDevice] {
+public func mtpDetectDevices() throws(MTPError) -> [RawDevice] {
     var rawDevices: UnsafeMutablePointer<LIBMTP_raw_device_t>? = nil
     var numDevices: CInt = 0
     let result = LIBMTP_Detect_Raw_Devices(&rawDevices, &numDevices)
@@ -16,6 +16,6 @@ public func mtpDetectDevices() throws(MTPError) -> [MTPRawDevice] {
         throw MTPError.operationFailed("device detection failed")
     }
     return (0..<numDevices).map { i in
-        MTPRawDevice(cRawDevice: &rawDevices![Int(i)])
+        RawDevice(cRawDevice: &rawDevices![Int(i)])
     }
 }

@@ -1,10 +1,10 @@
 import Clibmtp
 
-public struct MTPStorage {
-    private let device: MTPDevice
-    public let info: MTPStorageInfo
+public struct Storage {
+    private let device: Device
+    public let info: StorageInfo
 
-    init(device: MTPDevice, info: MTPStorageInfo) {
+    init(device: Device, info: StorageInfo) {
         self.device = device
         self.info = info
     }
@@ -14,11 +14,11 @@ public struct MTPStorage {
     public var maxCapacity: UInt64 { info.maxCapacity }
     public var freeSpace: UInt64 { info.freeSpace }
 
-    public func contents(of parent: Folder = .root) throws(MTPError) -> [MTPFileInfo] {
+    public func contents(of parent: Folder = .root) throws(MTPError) -> [FileInfo] {
         try device.contents(of: parent, storage: id)
     }
 
-    public func resolvePath(_ path: String) throws(MTPError) -> MTPFileInfo? {
+    public func resolvePath(_ path: String) throws(MTPError) -> FileInfo? {
         try device.resolvePath(path, storage: id)
     }
 
@@ -41,20 +41,20 @@ public struct MTPStorage {
     }
 }
 
-extension MTPDevice {
-    public func storageInfo() -> [MTPStorageInfo] {
-        var result: [MTPStorageInfo] = []
+extension Device {
+    public func storageInfo() -> [StorageInfo] {
+        var result: [StorageInfo] = []
         var current = raw.pointee.storage
         while let storage = current {
-            result.append(MTPStorageInfo(cStorage: storage))
+            result.append(StorageInfo(cStorage: storage))
             current = storage.pointee.next
         }
         return result
     }
 
-    public func storages() -> [MTPStorage] {
-        storageInfo().map { MTPStorage(device: self, info: $0) }
+    public func storages() -> [Storage] {
+        storageInfo().map { Storage(device: self, info: $0) }
     }
 
-    public var defaultStorage: MTPStorage? { storages().first }
+    public var defaultStorage: Storage? { storages().first }
 }

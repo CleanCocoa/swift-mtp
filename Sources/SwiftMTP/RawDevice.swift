@@ -1,6 +1,6 @@
 @preconcurrency import Clibmtp
 
-public struct MTPRawDevice: Sendable {
+public struct RawDevice: Sendable {
     public let busLocation: UInt32
     public let devnum: UInt8
     public let vendor: String
@@ -32,11 +32,11 @@ public struct MTPRawDevice: Sendable {
         cRaw = raw
     }
 
-    public mutating func open() throws(MTPError) -> MTPDevice {
+    public mutating func open() throws(MTPError) -> Device {
         guard let device = LIBMTP_Open_Raw_Device_Uncached(&cRaw) else {
             throw .connectionFailed(bus: busLocation, devnum: devnum)
         }
         LIBMTP_Get_Storage(device, 0)
-        return MTPDevice(raw: device)
+        return Device(raw: device)
     }
 }

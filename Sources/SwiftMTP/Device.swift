@@ -1,6 +1,6 @@
 import Clibmtp
 
-public enum MTPDeviceCapability: Sendable {
+public enum DeviceCapability: Sendable {
     case moveObject
     case copyObject
     case getPartialObject
@@ -8,7 +8,7 @@ public enum MTPDeviceCapability: Sendable {
     case editObjects
 }
 
-public final class MTPDevice {
+public final class Device {
     let raw: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>
 
     init(raw device: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>) {
@@ -58,18 +58,18 @@ public final class MTPDevice {
         return String(cString: cStr)
     }
 
-    public func readEvent() throws(MTPError) -> MTPEvent {
+    public func readEvent() throws(MTPError) -> Event {
         var event = LIBMTP_EVENT_NONE
         var param: UInt32 = 0
         let ret = LIBMTP_Read_Event(raw, &event, &param)
         if ret != 0 { throw .deviceDisconnected }
-        guard let mtpEvent = MTPEvent(cEvent: event, param: param) else {
+        guard let mtpEvent = Event(cEvent: event, param: param) else {
             throw .deviceDisconnected
         }
         return mtpEvent
     }
 
-    public func supportsCapability(_ cap: MTPDeviceCapability) -> Bool {
+    public func supportsCapability(_ cap: DeviceCapability) -> Bool {
         let cCap: LIBMTP_devicecap_t = switch cap {
         case .moveObject: LIBMTP_DEVICECAP_MoveObject
         case .copyObject: LIBMTP_DEVICECAP_CopyObject
