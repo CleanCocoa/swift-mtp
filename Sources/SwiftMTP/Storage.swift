@@ -41,6 +41,23 @@ public struct Storage {
 		try device.makeDirectory(named: name, in: parent, storage: id)
 	}
 
+	public func download(_ id: ObjectID, to localPath: String, progress: ProgressHandler? = nil) throws(MTPError) {
+		try device.download(id, to: localPath, progress: progress)
+	}
+
+	public func info(for id: ObjectID) throws(MTPError) -> FileInfo {
+		try device.info(for: id)
+	}
+
+	public func delete(_ id: ObjectID) throws(MTPError) {
+		try device.delete(id)
+	}
+
+	@discardableResult
+	public func rename(_ id: ObjectID, to newName: String) throws(MTPError) -> FileInfo {
+		try device.rename(id, to: newName)
+	}
+
 	public func move(_ objectId: ObjectID, to parent: Folder) throws(MTPError) {
 		try device.move(objectId, to: parent, storage: id)
 	}
