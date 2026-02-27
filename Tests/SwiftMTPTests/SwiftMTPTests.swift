@@ -91,6 +91,32 @@ import Clibmtp
     #expect(storage.freeSpace == 32_000_000_000)
 }
 
+@Test func `Folder equality for same ID`() {
+    let a = Folder(id: ObjectID(rawValue: 7))
+    let b = Folder(id: ObjectID(rawValue: 7))
+    let c = Folder(id: ObjectID(rawValue: 8))
+    #expect(a == b)
+    #expect(a != c)
+    #expect(Folder.root == Folder(id: ObjectID(rawValue: 0)))
+}
+
+@Test func `StorageID.all is zero`() {
+    #expect(StorageID.all == StorageID(rawValue: 0))
+}
+
+@Test func `ObjectID and StorageID round-trip through rawValue`() {
+    let obj = ObjectID(rawValue: 42)
+    #expect(ObjectID(rawValue: obj.rawValue) == obj)
+    let sid = StorageID(rawValue: 99)
+    #expect(StorageID(rawValue: sid.rawValue) == sid)
+}
+
+@Test func `nominal type descriptions`() {
+    #expect(ObjectID(rawValue: 5).description == "ObjectID(5)")
+    #expect(StorageID(rawValue: 10).description == "StorageID(10)")
+    #expect(Folder.root.description == "Folder(0)")
+}
+
 @Test func `MTPDeviceCapability has all cases`() {
     let caps: [MTPDeviceCapability] = [.moveObject, .copyObject, .getPartialObject, .sendPartialObject, .editObjects]
     #expect(caps.count == 5)
@@ -141,6 +167,7 @@ struct HardwareTests {
         #expect(device.manufacturerName != nil || device.modelName != nil || device.serialNumber != nil || device.friendlyName != nil || device.deviceVersion != nil)
         let storages = device.storageInfo()
         #expect(!storages.isEmpty)
+        #expect(device.defaultStorage?.id == storages.first?.id)
     }
 
     @Test func `list root directory`() throws {
