@@ -1,4 +1,4 @@
-@preconcurrency import Clibmtp
+import Clibmtp
 
 public struct RawDevice: Sendable {
 	public let busLocation: BusLocation

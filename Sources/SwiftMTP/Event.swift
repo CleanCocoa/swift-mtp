@@ -1,4 +1,4 @@
-@preconcurrency import Clibmtp
+import Clibmtp
 
 public enum Event: Sendable, Equatable {
 	case storeAdded(StorageID)

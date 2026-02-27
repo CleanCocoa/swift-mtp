@@ -1,4 +1,4 @@
-@preconcurrency import Clibmtp
+import Clibmtp
 
 public struct StorageInfo: Sendable {
 	public let id: StorageID
