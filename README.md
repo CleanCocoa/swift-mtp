@@ -37,17 +37,17 @@ mtpInitialize()
 var raw = try mtpDetectDevices().first!
 let device = try raw.open()
 
-// pick a storage
+// get the default storage — remembers its device
 let storage = device.defaultStorage!
 
 // list root and find a file by name
-let root = try device.contents()
+let root = try storage.contents()
 for entry in root {
     print(entry.name, entry.isDirectory ? "dir" : "\(entry.size) bytes")
 }
 
 // resolve a path directly
-if let note = try device.resolvePath("/Documents/note.pdf", storage: storage) {
+if let note = try storage.resolvePath("/Documents/note.pdf") {
     try device.download(note.id, to: "/tmp/note.pdf") { sent, total in
         print("\(sent)/\(total)")
         return true  // return false to cancel
@@ -55,18 +55,17 @@ if let note = try device.resolvePath("/Documents/note.pdf", storage: storage) {
 }
 
 // upload into a new folder
-let backup = try device.makeDirectory(named: "Backup", in: .root, storage: storage)
-let newId = try device.upload(
+let backup = try storage.makeDirectory(named: "Backup", in: .root)
+let newId = try storage.upload(
     from: "/tmp/report.pdf",
     to: backup,
-    storage: storage,
     as: "report.pdf"
 )
 
 // rename, move, delete
 try device.rename(newId, to: "final-report.pdf")
 if device.supportsCapability(.moveObject) {
-    try device.move(newId, to: .root, storage: storage)
+    try storage.move(newId, to: .root)
 }
 try device.delete(backup.id)
 ```
@@ -96,7 +95,8 @@ do throws(MTPError) {
 | `MTPDevice` | Device handle wrapping `LIBMTP_mtpdevice_t`. Released on deinit. |
 | `MTPRawDevice` | Discovered device before opening. Call `open()` to get an `MTPDevice`. |
 | `MTPFileInfo` | Unified file/folder metadata (id, name, size, dates, isDirectory, folder). |
-| `MTPStorageInfo` | Storage pool info (id, description, capacity, free space). |
+| `MTPStorage` | Device-bound storage handle for scoped operations (contents, upload, mkdir, move). |
+| `MTPStorageInfo` | Storage pool value type (id, description, capacity, free space). |
 | `ObjectID` | Nominal wrapper for MTP object IDs. |
 | `StorageID` | Nominal wrapper for storage pool IDs. Use `.all` for all storages. |
 | `Folder` | Compile-time safe folder reference. Use `.root` for root directory. |
