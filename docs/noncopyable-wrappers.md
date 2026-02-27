@@ -329,9 +329,101 @@ The two private recursive helpers (`_collectAllFolderIds`, `_collectChildFolders
 
 **`renameFolder`**: `Get_Folder_List` + `defer` + `Find_Folder` + `Set_Folder_Name` → `FolderTree(device:)` + `tree.rename()`
 
+## Nominal ID types
+
+All IDs are currently `UInt32` — the compiler can't distinguish a storage ID from a file ID from a parent ID. MTP has two distinct ID namespaces:
+
+```swift
+struct ObjectID: RawRepresentable, Hashable, Sendable {
+    let rawValue: UInt32
+    static let root = ObjectID(rawValue: 0)
+}
+
+struct StorageID: RawRepresentable, Hashable, Sendable {
+    let rawValue: UInt32
+    static let all = StorageID(rawValue: 0)
+}
+```
+
+Files and folders share the same object ID namespace in MTP (`item_id` and `folder_id` are interchangeable), so one `ObjectID` type covers both. `parentId` is an `ObjectID` — it's the ID of the containing folder.
+
+### Where IDs come from
+
+```
+listDirectory()    → [MTPFileInfo]  → .id: ObjectID, .storageId: StorageID
+resolvePath()      → MTPFileInfo?   → .id: ObjectID
+uploadFile()       → ObjectID       (return value)
+createDirectory()  → ObjectID       (return value)
+storageInfo()      → [MTPStorageInfo] → .id: StorageID
+```
+
+### Where IDs are consumed
+
+```
+downloadFile(id: ObjectID, ...)
+deleteObject(id: ObjectID)
+fileInfo(id: ObjectID) → MTPFileInfo
+renameFile(id: ObjectID, ...)
+renameFolder(id: ObjectID, ...)
+moveObject(id: ObjectID, toParentId: ObjectID, storageId: StorageID)
+listDirectory(storageId: StorageID, parentId: ObjectID)
+resolvePath(_:, storageId: StorageID)
+```
+
+### What changes in public types
+
+`MTPFileInfo`:
+
+```swift
+// Before:
+public let id: UInt32
+public let parentId: UInt32
+public let storageId: UInt32
+
+// After:
+public let id: ObjectID
+public let parentId: ObjectID
+public let storageId: StorageID
+```
+
+`MTPStorageInfo`:
+
+```swift
+// Before:
+public let id: UInt32
+
+// After:
+public let id: StorageID
+```
+
+This is a **public API change** — callers that pass raw `UInt32` literals will need `ObjectID(rawValue:)` or `StorageID(rawValue:)`. The `root` and `all` static constants cover the common `0` sentinel.
+
+### Interaction with ~Copyable wrappers
+
+The wrappers bridge between the nominal types and the C `uint32_t` at the boundary:
+
+```swift
+struct FileHandle: ~Copyable {
+    init?(device: ..., id: ObjectID) {
+        guard let p = LIBMTP_Get_Filemetadata(device, id.rawValue) else { return nil }
+        // ...
+    }
+}
+
+struct Upload: ~Copyable {
+    init?(filename: String, filesize: UInt64, parentId: ObjectID, storageId: StorageID) {
+        // ...
+        p.pointee.parent_id = parentId.rawValue
+        p.pointee.storage_id = storageId.rawValue
+        // ...
+    }
+
+    var itemId: ObjectID { ObjectID(rawValue: pointer.pointee.item_id) }
+}
+```
+
 ## What does NOT change
 
-- No public API changes — all wrappers are `internal`
 - No test changes — same behavior, structural cleanup only
 - `MTPDevice.swift` — its `defer { free(rawDevices) }` is for a C array, not a libmtp-managed resource
 - `MTPDeviceDiscovery.swift` — same
