@@ -75,13 +75,22 @@ extension Device {
 		}
 	}
 
-	public func makeDirectory(named name: String, in parent: Folder, storage: StorageID) throws(MTPError) -> Folder {
+	@discardableResult
+	public func makeDirectory(named name: String, in parent: Folder, storage: StorageID) throws(MTPError) -> FileInfo {
 		let folderId = LIBMTP_Create_Folder(raw, strdup(name), parent.id.rawValue, storage.rawValue)
 		if folderId == 0 {
 			let message = drainErrorStack(raw)
 			throw MTPError.operationFailed(message)
 		}
-		return Folder(id: ObjectID(rawValue: folderId))
+		return FileInfo(
+			id: ObjectID(rawValue: folderId),
+			parentId: parent.id,
+			storageId: storage,
+			name: name,
+			size: 0,
+			modificationDate: .distantPast,
+			isDirectory: true
+		)
 	}
 
 	public func move(_ id: ObjectID, to parent: Folder, storage: StorageID) throws(MTPError) {
@@ -106,7 +115,9 @@ extension Device {
 		try upload(from: localPath, to: parent, storage: storage.id, as: filename, progress: progress)
 	}
 
-	public func makeDirectory(named name: String, in parent: Folder, storage: StorageInfo) throws(MTPError) -> Folder {
+	@discardableResult
+	public func makeDirectory(named name: String, in parent: Folder, storage: StorageInfo) throws(MTPError) -> FileInfo
+	{
 		try makeDirectory(named: name, in: parent, storage: storage.id)
 	}
 
@@ -114,14 +125,15 @@ extension Device {
 		try move(id, to: parent, storage: storage.id)
 	}
 
-	public func rename(_ id: ObjectID, to newName: String) throws(MTPError) {
+	@discardableResult
+	public func rename(_ id: ObjectID, to newName: String) throws(MTPError) -> FileInfo {
 		if let handle = FileHandle(device: raw, id: id.rawValue) {
 			let ret = handle.rename(device: raw, to: newName)
 			if ret != 0 {
 				let message = drainErrorStack(raw)
 				throw MTPError.operationFailed(message)
 			}
-			return
+			return handle.toFileInfo()
 		}
 		_ = drainErrorStack(raw)
 
@@ -129,12 +141,13 @@ extension Device {
 			_ = drainErrorStack(raw)
 			throw MTPError.objectNotFound(id: id)
 		}
-		guard let ret = tree.rename(device: raw, folderId: id.rawValue, to: newName) else {
+		guard let (ret, info) = tree.rename(device: raw, folderId: id.rawValue, to: newName) else {
 			throw MTPError.objectNotFound(id: id)
 		}
 		if ret != 0 {
 			let message = drainErrorStack(raw)
 			throw MTPError.operationFailed(message)
 		}
+		return info
 	}
 }

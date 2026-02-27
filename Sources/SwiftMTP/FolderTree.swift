@@ -26,9 +26,10 @@ struct FolderTree: ~Copyable {
 		device: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>,
 		folderId: UInt32,
 		to newName: String
-	) -> CInt? {
+	) -> (result: CInt, info: FileInfo)? {
 		guard let folder = LIBMTP_Find_Folder(root, folderId) else { return nil }
-		return LIBMTP_Set_Folder_Name(device, folder, newName)
+		let result = LIBMTP_Set_Folder_Name(device, folder, newName)
+		return (result, FileInfo(cFolder: folder))
 	}
 }
 

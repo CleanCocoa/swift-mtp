@@ -17,6 +17,13 @@ import Foundation
 ///                                  to: .root, storage: storage,
 ///                                  as: "photo.jpg")
 /// print(uploaded.id, uploaded.name, uploaded.storageId)
+///
+/// // Create directory — returns new folder metadata
+/// let dir = try device.makeDirectory(named: "Photos",
+///                                    in: .root, storage: storage)
+///
+/// // Rename — returns updated metadata
+/// let renamed = try device.rename(objectID, to: "Vacation")
 /// ```
 public struct FileInfo: Sendable {
 	public let id: ObjectID

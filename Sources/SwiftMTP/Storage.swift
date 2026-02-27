@@ -32,7 +32,8 @@ public struct Storage {
 		try device.upload(from: localPath, to: parent, storage: id, as: filename, progress: progress)
 	}
 
-	public func makeDirectory(named name: String, in parent: Folder) throws(MTPError) -> Folder {
+	@discardableResult
+	public func makeDirectory(named name: String, in parent: Folder) throws(MTPError) -> FileInfo {
 		try device.makeDirectory(named: name, in: parent, storage: id)
 	}
 
