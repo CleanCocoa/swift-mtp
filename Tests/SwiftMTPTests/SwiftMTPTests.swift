@@ -29,7 +29,7 @@ import Testing
 
 @Test func `MTPError cases with associated values`() {
 	let e1 = MTPError.noDeviceAttached
-	let e2 = MTPError.connectionFailed(bus: 3, devnum: 7)
+	let e2 = MTPError.connectionFailed(bus: BusLocation(rawValue: 3), devnum: 7)
 	let e3 = MTPError.storageFull
 	let e4 = MTPError.objectNotFound(id: ObjectID(rawValue: 42))
 	let e5 = MTPError.operationFailed("bad op")
@@ -39,9 +39,9 @@ import Testing
 	let e9 = MTPError.deviceDisconnected
 
 	#expect(e1 == .noDeviceAttached)
-	#expect(e2 == .connectionFailed(bus: 3, devnum: 7))
-	#expect(e2 != .connectionFailed(bus: 3, devnum: 8))
-	#expect(e2 != .connectionFailed(bus: 4, devnum: 7))
+	#expect(e2 == .connectionFailed(bus: BusLocation(rawValue: 3), devnum: 7))
+	#expect(e2 != .connectionFailed(bus: BusLocation(rawValue: 3), devnum: 8))
+	#expect(e2 != .connectionFailed(bus: BusLocation(rawValue: 4), devnum: 7))
 	#expect(e3 == .storageFull)
 	#expect(e4 == .objectNotFound(id: ObjectID(rawValue: 42)))
 	#expect(e4 != .objectNotFound(id: ObjectID(rawValue: 99)))
@@ -56,19 +56,19 @@ import Testing
 
 @Test func `RawDevice stores properties`() {
 	let dev = RawDevice(
-		busLocation: 1,
+		busLocation: BusLocation(rawValue: 1),
 		devnum: 2,
 		vendor: "Acme",
-		vendorId: 0x1234,
+		vendorId: VendorID(rawValue: 0x1234),
 		product: "Widget",
-		productId: 0x5678
+		productId: ProductID(rawValue: 0x5678)
 	)
-	#expect(dev.busLocation == 1)
+	#expect(dev.busLocation == BusLocation(rawValue: 1))
 	#expect(dev.devnum == 2)
 	#expect(dev.vendor == "Acme")
-	#expect(dev.vendorId == 0x1234)
+	#expect(dev.vendorId == VendorID(rawValue: 0x1234))
 	#expect(dev.product == "Widget")
-	#expect(dev.productId == 0x5678)
+	#expect(dev.productId == ProductID(rawValue: 0x5678))
 }
 
 @Test func `FileInfo stores file properties`() {

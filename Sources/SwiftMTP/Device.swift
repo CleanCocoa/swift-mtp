@@ -15,7 +15,7 @@ public final class Device {
 		raw = device
 	}
 
-	public init(busLocation: UInt32, devnum: UInt8) throws(MTPError) {
+	public init(busLocation: BusLocation, devnum: UInt8) throws(MTPError) {
 		var rawDevices: UnsafeMutablePointer<LIBMTP_raw_device_t>? = nil
 		var numDevices: CInt = 0
 		let result = LIBMTP_Detect_Raw_Devices(&rawDevices, &numDevices)
@@ -25,7 +25,7 @@ public final class Device {
 		}
 		var matchIndex: Int? = nil
 		for i in 0..<Int(numDevices) {
-			if rawDevices![i].bus_location == busLocation && rawDevices![i].devnum == devnum {
+			if rawDevices![i].bus_location == busLocation.rawValue && rawDevices![i].devnum == devnum {
 				matchIndex = i
 				break
 			}
