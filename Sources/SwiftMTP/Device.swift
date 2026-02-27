@@ -8,6 +8,13 @@ public enum DeviceCapability: Sendable {
 	case editObjects
 }
 
+/// ## C contracts
+/// - libmtp is **not thread-safe**. A single device must not be accessed from multiple threads
+///   concurrently. This class does not add synchronization — callers must serialize access.
+/// - `getString` helpers call `free()` on the returned pointer. This is correct because all
+///   libmtp `Get_*name` functions return `malloc`-allocated strings with caller ownership.
+/// - `readEvent()` calls `LIBMTP_Read_Event` which blocks indefinitely on a USB interrupt
+///   endpoint with no timeout or cancellation mechanism. Run on a dedicated thread.
 public final class Device {
 	let raw: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>
 

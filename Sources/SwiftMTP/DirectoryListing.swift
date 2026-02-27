@@ -73,7 +73,7 @@ extension Device {
 		let components = path.split(separator: "/").map(String.init)
 		if components.isEmpty { return nil }
 
-		var currentParent = ObjectID(rawValue: 0)
+		var currentParent = ObjectID.root
 		var lastMatch: FileInfo? = nil
 
 		for component in components {

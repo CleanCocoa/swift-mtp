@@ -1,5 +1,14 @@
 import Clibmtp
 
+/// Outbound file metadata for an upload. Owns a `LIBMTP_new_file_t` allocation.
+///
+/// ## C contracts
+/// - `LIBMTP_destroy_file_t` frees only the single node (not `->next`). Safe for single-item
+///   ownership.
+/// - `LIBMTP_Create_Folder` takes ownership of its `name` parameter. Callers must pass a
+///   `strdup`'d string — passing a Swift string's temporary buffer would cause use-after-free.
+/// - `LIBMTP_Send_File_From_File` mutates the file struct: `item_id` is assigned by the device,
+///   and `filename`/`parent_id`/`storage_id` may change due to device restrictions.
 struct Upload: ~Copyable {
 	private let pointer: UnsafeMutablePointer<LIBMTP_file_struct>
 

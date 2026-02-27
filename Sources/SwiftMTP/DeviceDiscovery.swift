@@ -4,6 +4,9 @@ public func mtpInitialize() {
 	LIBMTP_Init()
 }
 
+/// ## C contract
+/// `LIBMTP_Detect_Raw_Devices` allocates a flat `malloc` array of `LIBMTP_raw_device_t`.
+/// Caller must `free()` the array pointer (not individual elements).
 public func mtpDetectDevices() throws(MTPError) -> [RawDevice] {
 	var rawDevices: UnsafeMutablePointer<LIBMTP_raw_device_t>? = nil
 	var numDevices: CInt = 0

@@ -1,5 +1,11 @@
 import Clibmtp
 
+/// Wraps the root of a folder tree returned by `LIBMTP_Get_Folder_List`.
+///
+/// ## C contract
+/// Unlike `LIBMTP_destroy_file_t`, `LIBMTP_destroy_folder_t` frees **recursively** — it walks
+/// `child` and `sibling` pointers and frees the entire subtree. Only the root should be
+/// wrapped. Child pointers borrowed from the tree must not outlive this wrapper.
 struct FolderTree: ~Copyable {
 	private let root: UnsafeMutablePointer<LIBMTP_folder_struct>
 

@@ -1,5 +1,10 @@
 import Clibmtp
 
+/// Wraps a single `LIBMTP_file_struct` returned by `LIBMTP_Get_Filemetadata`.
+///
+/// ## C contract
+/// `LIBMTP_destroy_file_t` frees only the single node (not `->next`). Safe for single-item
+/// ownership.
 struct FileHandle: ~Copyable {
 	private let pointer: UnsafeMutablePointer<LIBMTP_file_struct>
 

@@ -1,5 +1,11 @@
 import Clibmtp
 
+/// Wraps a single node from a flat linked list returned by `LIBMTP_Get_Files_And_Folders`.
+///
+/// ## C contract
+/// `LIBMTP_destroy_file_t` frees only the single node passed to it — it does **not** walk
+/// `->next`. This is what makes per-node ownership safe: each `FileNode` owns exactly one
+/// node, and iterating the list transfers ownership node-by-node via `next` before `deinit`.
 struct FileNode: ~Copyable {
 	private let pointer: UnsafeMutablePointer<LIBMTP_file_struct>
 

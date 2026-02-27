@@ -39,6 +39,9 @@ public struct RawDevice: Sendable {
 		cRaw = raw
 	}
 
+	/// ## C contract
+	/// `LIBMTP_Open_Raw_Device_Uncached` takes `UnsafeMutablePointer` even though it
+	/// conceptually only reads. This forces `open()` to be `mutating` so Swift can form `&cRaw`.
 	public mutating func open() throws(MTPError) -> Device {
 		guard let device = LIBMTP_Open_Raw_Device_Uncached(&cRaw) else {
 			throw .connectionFailed(bus: busLocation, devnum: devnum)
