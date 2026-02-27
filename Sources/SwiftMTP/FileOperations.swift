@@ -4,11 +4,14 @@ import Foundation
 extension Device {
 	public func download(
 		_ id: ObjectID,
-		to localPath: String,
+		to url: URL,
 		progress: ProgressHandler? = nil
 	) throws(MTPError) {
+		guard url.isFileURL else {
+			throw MTPError.notFileURL(url.absoluteString)
+		}
 		let ret = withProgressCallback(progress) { callback, context in
-			LIBMTP_Get_File_To_File(raw, id.rawValue, localPath, callback, context)
+			LIBMTP_Get_File_To_File(raw, id.rawValue, url.path, callback, context)
 		}
 		if ret != 0 {
 			let message = drainErrorStack(raw)
@@ -19,14 +22,27 @@ extension Device {
 		}
 	}
 
+	public func download(
+		_ id: ObjectID,
+		to localPath: String,
+		progress: ProgressHandler? = nil
+	) throws(MTPError) {
+		try download(id, to: URL(fileURLWithPath: localPath), progress: progress)
+	}
+
 	@discardableResult
 	public func upload(
-		from localPath: String,
+		from url: URL,
 		to parent: Folder,
 		storage: StorageID,
-		as filename: String,
+		as filename: String? = nil,
 		progress: ProgressHandler? = nil
 	) throws(MTPError) -> FileInfo {
+		guard url.isFileURL else {
+			throw MTPError.notFileURL(url.absoluteString)
+		}
+		let resolvedFilename = filename ?? url.lastPathComponent
+		let localPath = url.path
 		let attrs = try { () throws(MTPError) -> [FileAttributeKey: Any] in
 			do {
 				return try FileManager.default.attributesOfItem(atPath: localPath)
@@ -38,7 +54,7 @@ extension Device {
 
 		guard
 			let upload = Upload(
-				filename: filename,
+				filename: resolvedFilename,
 				filesize: fileSize,
 				parent: parent,
 				storage: storage
@@ -57,6 +73,17 @@ extension Device {
 		}
 
 		return uploaded.toFileInfo()
+	}
+
+	@discardableResult
+	public func upload(
+		from localPath: String,
+		to parent: Folder,
+		storage: StorageID,
+		as filename: String,
+		progress: ProgressHandler? = nil
+	) throws(MTPError) -> FileInfo {
+		try upload(from: URL(fileURLWithPath: localPath), to: parent, storage: storage, as: filename, progress: progress)
 	}
 
 	public func info(for id: ObjectID) throws(MTPError) -> FileInfo {
@@ -102,6 +129,17 @@ extension Device {
 			}
 			throw MTPError.operationFailed(message)
 		}
+	}
+
+	@discardableResult
+	public func upload(
+		from url: URL,
+		to parent: Folder,
+		storage: StorageInfo,
+		as filename: String? = nil,
+		progress: ProgressHandler? = nil
+	) throws(MTPError) -> FileInfo {
+		try upload(from: url, to: parent, storage: storage.id, as: filename, progress: progress)
 	}
 
 	@discardableResult

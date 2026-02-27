@@ -12,11 +12,16 @@ import Foundation
 /// // Directory listing
 /// let entries = try device.contents(of: .root)
 ///
-/// // Upload — returns device-assigned metadata (id, filename, storage)
-/// let uploaded = try device.upload(from: "/tmp/photo.jpg",
-///                                  to: .root, storage: storage,
-///                                  as: "photo.jpg")
+/// // Upload from URL — filename defaults to lastPathComponent
+/// let url = URL(fileURLWithPath: "/tmp/photo.jpg")
+/// let uploaded = try device.upload(from: url,
+///                                  to: .root, storage: storage)
 /// print(uploaded.id, uploaded.name, uploaded.storageId)
+///
+/// // Upload from String path
+/// let uploaded2 = try device.upload(from: "/tmp/photo.jpg",
+///                                   to: .root, storage: storage,
+///                                   as: "photo.jpg")
 ///
 /// // Create directory — returns new folder metadata
 /// let dir = try device.makeDirectory(named: "Photos",

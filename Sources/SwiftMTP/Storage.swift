@@ -1,4 +1,5 @@
 import Clibmtp
+import Foundation
 
 @MainActor
 public struct Storage: Sendable {
@@ -29,6 +30,16 @@ public struct Storage: Sendable {
 
 	@discardableResult
 	public func upload(
+		from url: URL,
+		to parent: Folder,
+		as filename: String? = nil,
+		progress: ProgressHandler? = nil
+	) throws(MTPError) -> FileInfo {
+		try device.upload(from: url, to: parent, storage: id, as: filename, progress: progress)
+	}
+
+	@discardableResult
+	public func upload(
 		from localPath: String,
 		to parent: Folder,
 		as filename: String,
@@ -40,6 +51,10 @@ public struct Storage: Sendable {
 	@discardableResult
 	public func makeDirectory(named name: String, in parent: Folder) throws(MTPError) -> FileInfo {
 		try device.makeDirectory(named: name, in: parent, storage: id)
+	}
+
+	public func download(_ id: ObjectID, to url: URL, progress: ProgressHandler? = nil) throws(MTPError) {
+		try device.download(id, to: url, progress: progress)
 	}
 
 	public func download(_ id: ObjectID, to localPath: String, progress: ProgressHandler? = nil) throws(MTPError) {

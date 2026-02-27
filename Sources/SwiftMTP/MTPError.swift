@@ -7,6 +7,7 @@ public enum MTPError: Error, Equatable, Sendable {
 	case objectNotFound(id: ObjectID)
 	case operationFailed(String)
 	case pathNotFound(String)
+	case notFileURL(String)
 	case moveNotSupported
 	case cancelled
 	case deviceDisconnected

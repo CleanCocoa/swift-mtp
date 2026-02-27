@@ -22,9 +22,17 @@ import Testing
 @Test func `MTPError is Sendable`() {
 	let _: any Sendable = MTPError.noDeviceAttached
 	let _: any Sendable = MTPError.storageFull
+	let _: any Sendable = MTPError.notFileURL("https://example.com")
 	let _: any Sendable = MTPError.moveNotSupported
 	let _: any Sendable = MTPError.cancelled
 	let _: any Sendable = MTPError.deviceDisconnected
+}
+
+@Test func `MTPError notFileURL carries URL string`() {
+	let e = MTPError.notFileURL("https://example.com/file.txt")
+	#expect(e == .notFileURL("https://example.com/file.txt"))
+	#expect(e != .notFileURL("https://other.com/file.txt"))
+	#expect(e != .operationFailed("https://example.com/file.txt"))
 }
 
 @Test func `MTPError cases with associated values`() {
