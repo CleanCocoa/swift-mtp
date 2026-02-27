@@ -47,10 +47,8 @@ extension Device {
 			throw MTPError.operationFailed("failed to allocate file metadata")
 		}
 
-		let ret = withProgressCallback(progress) { callback, context in
-			upload.send(device: raw, from: localPath, callback: callback, data: context)
-		}
-		if ret != 0 {
+		let uploaded = upload.send(device: raw, from: localPath, progress: progress)
+		if uploaded.result != 0 {
 			let message = drainErrorStack(raw)
 			if message.localizedCaseInsensitiveContains("storage full") {
 				throw MTPError.storageFull
@@ -58,7 +56,7 @@ extension Device {
 			throw MTPError.operationFailed(message)
 		}
 
-		return ObjectID(rawValue: upload.itemId)
+		return ObjectID(rawValue: uploaded.itemId)
 	}
 
 	public func info(for id: ObjectID) throws(MTPError) -> FileInfo {

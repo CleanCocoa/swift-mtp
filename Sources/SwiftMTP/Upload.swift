@@ -15,14 +15,27 @@ struct Upload: ~Copyable {
 
 	deinit { LIBMTP_destroy_file_t(pointer) }
 
-	var itemId: UInt32 { pointer.pointee.item_id }
-
-	func send(
+	consuming func send(
 		device: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>,
 		from localPath: String,
-		callback: LIBMTP_progressfunc_t?,
-		data: UnsafeMutableRawPointer?
-	) -> CInt {
-		LIBMTP_Send_File_From_File(device, localPath, pointer, callback, data)
+		progress: ProgressHandler?
+	) -> Uploaded {
+		let p = pointer
+		discard self
+		let ret = withProgressCallback(progress) { callback, context in
+			LIBMTP_Send_File_From_File(device, localPath, p, callback, context)
+		}
+		return Uploaded(pointer: p, result: ret)
+	}
+
+	struct Uploaded: ~Copyable {
+		private let pointer: UnsafeMutablePointer<LIBMTP_file_struct>
+		let result: CInt
+		fileprivate init(pointer: UnsafeMutablePointer<LIBMTP_file_struct>, result: CInt) {
+			self.pointer = pointer
+			self.result = result
+		}
+		deinit { LIBMTP_destroy_file_t(pointer) }
+		var itemId: UInt32 { pointer.pointee.item_id }
 	}
 }
