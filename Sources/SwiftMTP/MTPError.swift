@@ -9,6 +9,7 @@ public enum MTPError: Error, Equatable, Sendable {
     case pathNotFound(String)
     case moveNotSupported
     case cancelled
+    case deviceDisconnected
 }
 
 func drainErrorStack(_ device: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>) -> String {

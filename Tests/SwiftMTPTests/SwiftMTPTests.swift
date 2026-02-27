@@ -14,6 +14,8 @@ import Clibmtp
     #expect(MTPError.cancelled == .cancelled)
     #expect(MTPError.noDeviceAttached != .storageFull)
     #expect(MTPError.moveNotSupported != .cancelled)
+    #expect(MTPError.deviceDisconnected == .deviceDisconnected)
+    #expect(MTPError.deviceDisconnected != .cancelled)
 }
 
 @Test func `MTPError is Sendable`() {
@@ -21,6 +23,7 @@ import Clibmtp
     let _: any Sendable = MTPError.storageFull
     let _: any Sendable = MTPError.moveNotSupported
     let _: any Sendable = MTPError.cancelled
+    let _: any Sendable = MTPError.deviceDisconnected
 }
 
 @Test func `MTPError cases with associated values`() {
@@ -32,6 +35,7 @@ import Clibmtp
     let e6 = MTPError.pathNotFound("/foo/bar")
     let e7 = MTPError.moveNotSupported
     let e8 = MTPError.cancelled
+    let e9 = MTPError.deviceDisconnected
 
     #expect(e1 == .noDeviceAttached)
     #expect(e2 == .connectionFailed(bus: 3, devnum: 7))
@@ -46,6 +50,7 @@ import Clibmtp
     #expect(e6 != .pathNotFound("/baz"))
     #expect(e7 == .moveNotSupported)
     #expect(e8 == .cancelled)
+    #expect(e9 == .deviceDisconnected)
 }
 
 @Test func `MTPRawDevice stores properties`() {
