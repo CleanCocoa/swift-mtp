@@ -1,6 +1,26 @@
 import Foundation
 import Clibmtp
 
+public struct ObjectID: RawRepresentable, Hashable, Sendable, CustomStringConvertible {
+    public let rawValue: UInt32
+    public init(rawValue: UInt32) { self.rawValue = rawValue }
+    public var description: String { "ObjectID(\(rawValue))" }
+}
+
+public struct StorageID: RawRepresentable, Hashable, Sendable, CustomStringConvertible {
+    public let rawValue: UInt32
+    public init(rawValue: UInt32) { self.rawValue = rawValue }
+    public static let all = StorageID(rawValue: 0)
+    public var description: String { "StorageID(\(rawValue))" }
+}
+
+public struct Folder: Hashable, Sendable, CustomStringConvertible {
+    public let id: ObjectID
+    public init(id: ObjectID) { self.id = id }
+    public static let root = Folder(id: ObjectID(rawValue: 0))
+    public var description: String { "Folder(\(id.rawValue))" }
+}
+
 public struct MTPRawDevice: Sendable {
     public let busLocation: UInt32
     public let devnum: UInt8
