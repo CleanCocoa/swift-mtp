@@ -331,33 +331,58 @@ The two private recursive helpers (`_collectAllFolderIds`, `_collectChildFolders
 
 ## Nominal ID types
 
-All IDs are currently `UInt32` — the compiler can't distinguish a storage ID from a file ID from a parent ID. MTP has two distinct ID namespaces:
+All IDs are currently `UInt32` — the compiler can't distinguish a storage ID from a file ID, or prevent uploading into a file instead of a folder. Three nominal types fix this:
 
 ```swift
 struct ObjectID: RawRepresentable, Hashable, Sendable {
     let rawValue: UInt32
-    static let root = ObjectID(rawValue: 0)
 }
 
 struct StorageID: RawRepresentable, Hashable, Sendable {
     let rawValue: UInt32
     static let all = StorageID(rawValue: 0)
 }
+
+struct Folder: Hashable, Sendable {
+    let id: ObjectID
+    static let root = Folder(id: ObjectID(rawValue: 0))
+}
 ```
 
-Files and folders share the same object ID namespace in MTP (`item_id` and `folder_id` are interchangeable), so one `ObjectID` type covers both. `parentId` is an `ObjectID` — it's the ID of the containing folder.
+`ObjectID` identifies any object (file or folder) — MTP uses a single ID namespace. `StorageID` identifies a storage pool. `Folder` is a refinement of `ObjectID` that can only be constructed from known-folder contexts, enforcing at compile time that you can't upload into a file.
 
-### Where IDs come from
+### Where values come from
 
 ```
-listDirectory()    → [MTPFileInfo]  → .id: ObjectID, .storageId: StorageID
-resolvePath()      → MTPFileInfo?   → .id: ObjectID
-uploadFile()       → ObjectID       (return value)
-createDirectory()  → ObjectID       (return value)
+listDirectory()    → [MTPFileInfo]    → .id: ObjectID, .folder: Folder?, .storageId: StorageID
+resolvePath()      → MTPFileInfo?     → .id: ObjectID, .folder: Folder?
+uploadFile()       → ObjectID         (return value)
+createDirectory()  → Folder           (return value — always a folder)
 storageInfo()      → [MTPStorageInfo] → .id: StorageID
+Folder.root                           (global constant)
 ```
 
-### Where IDs are consumed
+`MTPFileInfo` exposes a computed `folder` property — `nil` for files:
+
+```swift
+extension MTPFileInfo {
+    public var folder: Folder? { isDirectory ? Folder(id: id) : nil }
+}
+```
+
+### Where values are consumed
+
+APIs that target a parent directory take `Folder`, not `ObjectID`:
+
+```
+uploadFile(from:, to: Folder, storage: StorageID, ...)
+createDirectory(name:, in: Folder, storage: StorageID) → Folder
+moveObject(id: ObjectID, to: Folder, storage: StorageID)
+listDirectory(in: Folder, storage: StorageID)
+resolvePath(_:, storage: StorageID)
+```
+
+APIs that operate on any object take `ObjectID`:
 
 ```
 downloadFile(id: ObjectID, ...)
@@ -365,9 +390,19 @@ deleteObject(id: ObjectID)
 fileInfo(id: ObjectID) → MTPFileInfo
 renameFile(id: ObjectID, ...)
 renameFolder(id: ObjectID, ...)
-moveObject(id: ObjectID, toParentId: ObjectID, storageId: StorageID)
-listDirectory(storageId: StorageID, parentId: ObjectID)
-resolvePath(_:, storageId: StorageID)
+```
+
+### Usage example
+
+```swift
+let entries = try device.listDirectory(in: .root, storage: storage.id)
+let docs = entries.first { $0.name == "Documents" }!.folder!
+
+try device.uploadFile(from: "/tmp/report.pdf", to: docs, storage: storage.id)
+let backups = try device.createDirectory(name: "Backups", in: .root, storage: storage.id)
+try device.moveObject(id: fileId, to: backups, storage: storage.id)
+
+// device.uploadFile(from: path, to: fileId, ...)  // compile error — ObjectID is not Folder
 ```
 
 ### What changes in public types
@@ -384,6 +419,7 @@ public let storageId: UInt32
 public let id: ObjectID
 public let parentId: ObjectID
 public let storageId: StorageID
+public var folder: Folder? { isDirectory ? Folder(id: id) : nil }
 ```
 
 `MTPStorageInfo`:
@@ -396,11 +432,11 @@ public let id: UInt32
 public let id: StorageID
 ```
 
-This is a **public API change** — callers that pass raw `UInt32` literals will need `ObjectID(rawValue:)` or `StorageID(rawValue:)`. The `root` and `all` static constants cover the common `0` sentinel.
+This is a **public API change** — callers that pass raw `UInt32` literals will need `ObjectID(rawValue:)` or `StorageID(rawValue:)`. `Folder.root` and `StorageID.all` cover the common `0` sentinels.
 
 ### Interaction with ~Copyable wrappers
 
-The wrappers bridge between the nominal types and the C `uint32_t` at the boundary:
+The wrappers bridge between nominal types and C `uint32_t` at the boundary:
 
 ```swift
 struct FileHandle: ~Copyable {
@@ -411,14 +447,21 @@ struct FileHandle: ~Copyable {
 }
 
 struct Upload: ~Copyable {
-    init?(filename: String, filesize: UInt64, parentId: ObjectID, storageId: StorageID) {
+    init?(filename: String, filesize: UInt64, to parent: Folder, storage: StorageID) {
         // ...
-        p.pointee.parent_id = parentId.rawValue
-        p.pointee.storage_id = storageId.rawValue
+        p.pointee.parent_id = parent.id.rawValue
+        p.pointee.storage_id = storage.rawValue
         // ...
     }
 
     var itemId: ObjectID { ObjectID(rawValue: pointer.pointee.item_id) }
+}
+
+struct FolderTree: ~Copyable {
+    func rename(device: ..., folderId: ObjectID, to newName: String) -> CInt? {
+        guard let folder = LIBMTP_Find_Folder(root, folderId.rawValue) else { return nil }
+        // ...
+    }
 }
 ```
 
