@@ -105,31 +105,20 @@ do throws(MTPError) {
 
 ## Testing
 
-Unit tests run without hardware:
+17 unit tests run without hardware, 3 require an MTP device:
 
 ```sh
 swift test
+MTP_DEVICE_CONNECTED=1 swift test  # with device attached
 ```
 
-Hardware integration tests require an MTP device connected via USB:
-
-```sh
-MTP_DEVICE_CONNECTED=1 swift test
-```
-
-Verify the device is visible to libmtp first:
-
-```sh
-mtp-detect
-```
-
-Hardware tests are in a serialized suite (`@Suite(.serialized)`) since libmtp is not thread-safe. When `MTP_DEVICE_CONNECTED` is unset, hardware tests are skipped and the device-detection test asserts an empty result. When set, the detection test is skipped instead and the hardware suite runs: device discovery, property reading, and root directory listing.
+Hardware tests are in a serialized suite (`@Suite(.serialized)`) since libmtp is not thread-safe. When `MTP_DEVICE_CONNECTED` is unset, hardware tests are skipped and the device-detection test asserts an empty result. When set, the detection test is skipped instead and the hardware suite runs: device discovery, property reading, storage inspection, and root directory listing.
 
 ## Architecture
 
-Two-target SPM package:
+Two-target SPM package (Swift 6.2, macOS 26):
 
 - **Clibmtp** — `.systemLibrary` wrapping `libmtp.h` via pkg-config
 - **SwiftMTP** — Pure Swift API layer with typed throws, `Sendable` value types, and automatic C memory management
 
-All public value types are `Sendable`. `MTPDevice` is a `final class` with `deinit`-based cleanup. Internal C resource management uses `~Copyable` structs (`Upload`, `FileHandle`, `FileNode`, `FolderTree`) that guarantee cleanup via `deinit` instead of manual `defer`/`destroy` patterns. The library operates statelessly — callers manage their own caching.
+All public value types are `Sendable`. `MTPDevice` is a `final class` with `deinit`-based cleanup. Internal C resource management uses `~Copyable` structs (`Upload`, `FileHandle`, `FileNode`, `FolderTree`) that guarantee cleanup via `deinit` instead of manual `defer`/`destroy` patterns. Nominal ID types (`ObjectID`, `StorageID`, `Folder`) prevent compile-time confusion between storage, object, and parent folder IDs. The library operates statelessly — callers manage their own caching.
