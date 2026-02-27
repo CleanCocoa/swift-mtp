@@ -98,3 +98,8 @@ import Clibmtp
     let devices = try mtpDetectDevices()
     #expect(devices.isEmpty)
 }
+
+@Test func `MTPDeviceCapability enum cases exist`() {
+    let caps: [MTPDeviceCapability] = [.moveObject, .copyObject, .getPartialObject, .sendPartialObject, .editObjects]
+    #expect(caps.count == 5)
+}
