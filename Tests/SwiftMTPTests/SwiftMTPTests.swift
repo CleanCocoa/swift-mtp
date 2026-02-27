@@ -115,3 +115,7 @@ import Clibmtp
 @Test func `file operations methods compile`() {
     #expect(true)
 }
+
+@Test func `mutation operations methods compile`() {
+    #expect(true)
+}
