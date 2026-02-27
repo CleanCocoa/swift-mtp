@@ -1,0 +1,5 @@
+module Clibmtp [system] {
+    header "shim.h"
+    link "mtp"
+    export *
+}
