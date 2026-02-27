@@ -68,6 +68,19 @@ if device.supportsCapability(.moveObject) {
     try storage.move(newId, to: .root)
 }
 try device.delete(backup.id)
+
+// listen for events (blocking — run on a background thread)
+Task.detached {
+    while true {
+        do {
+            let event = try device.readEvent()
+            print("Event: \(event)")
+        } catch .deviceDisconnected {
+            print("Device disconnected")
+            break
+        }
+    }
+}
 ```
 
 `MTPDevice` opens the device in uncached mode and populates storage on init. All device operations are instance methods. The device is released automatically on deinit.
@@ -86,7 +99,7 @@ do throws(MTPError) {
 }
 ```
 
-`MTPError` cases: `noDeviceAttached`, `connectionFailed`, `storageFull`, `objectNotFound`, `operationFailed`, `pathNotFound`, `moveNotSupported`, `cancelled`.
+`MTPError` cases: `noDeviceAttached`, `connectionFailed`, `storageFull`, `objectNotFound`, `operationFailed`, `pathNotFound`, `moveNotSupported`, `cancelled`, `deviceDisconnected`.
 
 ## Types
 
@@ -100,12 +113,13 @@ do throws(MTPError) {
 | `ObjectID` | Nominal wrapper for MTP object IDs. |
 | `StorageID` | Nominal wrapper for storage pool IDs. Use `.all` for all storages. |
 | `Folder` | Compile-time safe folder reference. Use `.root` for root directory. |
+| `MTPEvent` | Event enum for device notifications (store/object added/removed, property changed). |
 | `MTPError` | Typed error enum covering all failure modes. |
 | `MTPDeviceCapability` | Device capability flags (moveObject, copyObject, etc.). |
 
 ## Testing
 
-17 unit tests run without hardware, 3 require an MTP device:
+21 unit tests run without hardware, 3 require an MTP device:
 
 ```sh
 swift test
