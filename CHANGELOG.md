@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.5.0] — 2026-02-28
+
+### Added
+- `URL` overloads for `upload(from:)` and `download(_:to:)` on both `Device` and `Storage`
+- Upload from URL defaults filename to `url.lastPathComponent` when `as:` is omitted
+- `MTPError.notFileURL` case for non-file URL diagnostics
+
+### Changed
+- URL is now the canonical parameter type for local file paths; String overloads delegate to URL versions
+
 ## [0.4.0] — 2026-02-28
 
 ### Added
