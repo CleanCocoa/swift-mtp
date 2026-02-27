@@ -350,6 +350,86 @@ import Testing
 	let _: any Sendable = ProductID(rawValue: 0x5678)
 }
 
+private func fileInfo(name: String, size: UInt64 = 0, date: Date = .distantPast, isDirectory: Bool = false) -> FileInfo
+{
+	FileInfo(
+		id: ObjectID(rawValue: 0),
+		parentId: ObjectID(rawValue: 0),
+		storageId: StorageID(rawValue: 0),
+		name: name,
+		size: size,
+		modificationDate: date,
+		isDirectory: isDirectory
+	)
+}
+
+@Test func `sorted(.byName) sorts case-insensitively`() {
+	let entries = [fileInfo(name: "c"), fileInfo(name: "a"), fileInfo(name: "b")]
+	let sorted = entries.sorted(.byName)
+	#expect(sorted.map(\.name) == ["a", "b", "c"])
+}
+
+@Test func `sorted(.byNameDescending) reverses name order`() {
+	let entries = [fileInfo(name: "a"), fileInfo(name: "c"), fileInfo(name: "b")]
+	let sorted = entries.sorted(.byNameDescending)
+	#expect(sorted.map(\.name) == ["c", "b", "a"])
+}
+
+@Test func `sorted(.byName) is case-insensitive`() {
+	let entries = [fileInfo(name: "Banana"), fileInfo(name: "apple"), fileInfo(name: "Cherry")]
+	let sorted = entries.sorted(.byName)
+	#expect(sorted.map(\.name) == ["apple", "Banana", "Cherry"])
+}
+
+@Test func `sorted(.bySize) sorts ascending`() {
+	let entries = [
+		fileInfo(name: "big", size: 300), fileInfo(name: "small", size: 100), fileInfo(name: "mid", size: 200),
+	]
+	let sorted = entries.sorted(.bySize)
+	#expect(sorted.map(\.name) == ["small", "mid", "big"])
+}
+
+@Test func `sorted(.bySizeDescending) sorts descending`() {
+	let entries = [
+		fileInfo(name: "big", size: 300), fileInfo(name: "small", size: 100), fileInfo(name: "mid", size: 200),
+	]
+	let sorted = entries.sorted(.bySizeDescending)
+	#expect(sorted.map(\.name) == ["big", "mid", "small"])
+}
+
+@Test func `sorted(.byDate) sorts ascending`() {
+	let d1 = Date(timeIntervalSince1970: 100)
+	let d2 = Date(timeIntervalSince1970: 200)
+	let d3 = Date(timeIntervalSince1970: 300)
+	let entries = [
+		fileInfo(name: "newest", date: d3), fileInfo(name: "oldest", date: d1), fileInfo(name: "middle", date: d2),
+	]
+	let sorted = entries.sorted(.byDate)
+	#expect(sorted.map(\.name) == ["oldest", "middle", "newest"])
+}
+
+@Test func `sorted(.byDateDescending) sorts descending`() {
+	let d1 = Date(timeIntervalSince1970: 100)
+	let d2 = Date(timeIntervalSince1970: 200)
+	let d3 = Date(timeIntervalSince1970: 300)
+	let entries = [
+		fileInfo(name: "newest", date: d3), fileInfo(name: "oldest", date: d1), fileInfo(name: "middle", date: d2),
+	]
+	let sorted = entries.sorted(.byDateDescending)
+	#expect(sorted.map(\.name) == ["newest", "middle", "oldest"])
+}
+
+@Test func `sorted(.directoriesFirst) puts dirs before files then by name`() {
+	let entries = [
+		fileInfo(name: "zebra.txt"),
+		fileInfo(name: "Photos", isDirectory: true),
+		fileInfo(name: "apple.txt"),
+		fileInfo(name: "Music", isDirectory: true),
+	]
+	let sorted = entries.sorted(.directoriesFirst)
+	#expect(sorted.map(\.name) == ["Music", "Photos", "apple.txt", "zebra.txt"])
+}
+
 private let deviceConnected = ProcessInfo.processInfo.environment["MTP_DEVICE_CONNECTED"] == "1"
 
 @Test(.disabled(if: deviceConnected, "Device is connected, detection will return results"))

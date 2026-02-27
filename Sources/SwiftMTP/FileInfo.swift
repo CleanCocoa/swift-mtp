@@ -65,6 +65,38 @@ public struct FileInfo: Sendable {
 		isDirectory = f.filetype == LIBMTP_FILETYPE_FOLDER
 	}
 
+	public enum SortOrder: Sendable {
+		case byName
+		case byNameDescending
+		case bySize
+		case bySizeDescending
+		case byDate
+		case byDateDescending
+		case directoriesFirst
+	}
+
+	public static func comparator(for order: SortOrder) -> (FileInfo, FileInfo) -> Bool {
+		switch order {
+		case .byName:
+			{ $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+		case .byNameDescending:
+			{ $1.name.localizedStandardCompare($0.name) == .orderedAscending }
+		case .bySize:
+			{ $0.size < $1.size }
+		case .bySizeDescending:
+			{ $0.size > $1.size }
+		case .byDate:
+			{ $0.modificationDate < $1.modificationDate }
+		case .byDateDescending:
+			{ $0.modificationDate > $1.modificationDate }
+		case .directoriesFirst:
+			{
+				if $0.isDirectory != $1.isDirectory { return $0.isDirectory }
+				return $0.name.localizedStandardCompare($1.name) == .orderedAscending
+			}
+		}
+	}
+
 	init(cFolder: UnsafeMutablePointer<LIBMTP_folder_struct>) {
 		let f = cFolder.pointee
 		id = ObjectID(rawValue: f.folder_id)
@@ -74,5 +106,11 @@ public struct FileInfo: Sendable {
 		size = 0
 		modificationDate = .distantPast
 		isDirectory = true
+	}
+}
+
+extension Sequence where Element == FileInfo {
+	public func sorted(_ order: FileInfo.SortOrder) -> [FileInfo] {
+		sorted(by: FileInfo.comparator(for: order))
 	}
 }
