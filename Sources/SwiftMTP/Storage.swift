@@ -28,7 +28,7 @@ public struct Storage {
 		to parent: Folder,
 		as filename: String,
 		progress: ProgressHandler? = nil
-	) throws(MTPError) -> ObjectID {
+	) throws(MTPError) -> FileInfo {
 		try device.upload(from: localPath, to: parent, storage: id, as: filename, progress: progress)
 	}
 

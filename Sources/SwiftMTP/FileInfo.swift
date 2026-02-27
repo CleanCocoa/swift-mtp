@@ -1,6 +1,23 @@
 @preconcurrency import Clibmtp
 import Foundation
 
+/// Metadata for a file or folder on an MTP device.
+///
+/// Obtain instances through the `Device` API:
+///
+/// ```swift
+/// // Single lookup by ID
+/// let info = try device.info(for: objectID)
+///
+/// // Directory listing
+/// let entries = try device.contents(of: .root)
+///
+/// // Upload — returns device-assigned metadata (id, filename, storage)
+/// let uploaded = try device.upload(from: "/tmp/photo.jpg",
+///                                  to: .root, storage: storage,
+///                                  as: "photo.jpg")
+/// print(uploaded.id, uploaded.name, uploaded.storageId)
+/// ```
 public struct FileInfo: Sendable {
 	public let id: ObjectID
 	public let parentId: ObjectID

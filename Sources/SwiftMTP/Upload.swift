@@ -43,5 +43,6 @@ struct Upload: ~Copyable {
 		}
 		deinit { LIBMTP_destroy_file_t(pointer) }
 		var itemId: UInt32 { pointer.pointee.item_id }
+		func toFileInfo() -> FileInfo { FileInfo(cFile: pointer) }
 	}
 }

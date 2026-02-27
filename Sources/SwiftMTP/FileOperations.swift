@@ -26,7 +26,7 @@ extension Device {
 		storage: StorageID,
 		as filename: String,
 		progress: ProgressHandler? = nil
-	) throws(MTPError) -> ObjectID {
+	) throws(MTPError) -> FileInfo {
 		let attrs = try { () throws(MTPError) -> [FileAttributeKey: Any] in
 			do {
 				return try FileManager.default.attributesOfItem(atPath: localPath)
@@ -56,7 +56,7 @@ extension Device {
 			throw MTPError.operationFailed(message)
 		}
 
-		return ObjectID(rawValue: uploaded.itemId)
+		return uploaded.toFileInfo()
 	}
 
 	public func info(for id: ObjectID) throws(MTPError) -> FileInfo {
@@ -102,7 +102,7 @@ extension Device {
 		storage: StorageInfo,
 		as filename: String,
 		progress: ProgressHandler? = nil
-	) throws(MTPError) -> ObjectID {
+	) throws(MTPError) -> FileInfo {
 		try upload(from: localPath, to: parent, storage: storage.id, as: filename, progress: progress)
 	}
 
