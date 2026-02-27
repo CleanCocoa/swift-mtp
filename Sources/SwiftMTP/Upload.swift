@@ -15,6 +15,12 @@ struct Upload: ~Copyable {
 
 	deinit { LIBMTP_destroy_file_t(pointer) }
 
+	/// `LIBMTP_Send_File_From_File` mutates the file struct during transfer:
+	/// `item_id` is assigned by the device via `send_file_object_info`, and
+	/// `filename`, `parent_id`, and `storage_id` may also change due to device
+	/// restrictions (see `LIBMTP_Send_File_From_File_Descriptor` documentation).
+	/// The consuming projection to `Uploaded` models this: `Upload` represents
+	/// intent, `Uploaded` represents the device-assigned result.
 	consuming func send(
 		device: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>,
 		from localPath: String,
