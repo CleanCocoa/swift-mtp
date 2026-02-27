@@ -1,6 +1,6 @@
 # Noncopyable Wrappers for C Resource Management
 
-Replace raw pointer `defer`/`destroy` patterns with Swift 6.2 `~Copyable` structs that guarantee cleanup via `deinit`. The key design principle: **wrappers create the resource internally** — the `init` that takes a raw pointer is `fileprivate`, and the public/internal API uses factory functions following the Swift API Design Guidelines (`makeXYZ` naming).
+Replace raw pointer `defer`/`destroy` patterns with Swift 6.2 `~Copyable` structs that guarantee cleanup via `deinit`. The key design principle: **wrappers create the resource internally** — the `init` that takes a raw pointer is `fileprivate`, and the public/internal API is use-case specific types with descriptive names.
 
 ## Motivation: before and after
 
@@ -9,9 +9,6 @@ Replace raw pointer `defer`/`destroy` patterns with Swift 6.2 `~Copyable` struct
 Before — 12 lines, 5 raw `pointee` writes, manual `defer`, `strdup` at call site:
 
 ```swift
-let attrs = try FileManager.default.attributesOfItem(atPath: localPath)
-let fileSize = (attrs[.size] as? UInt64) ?? 0
-
 guard let metadata = LIBMTP_new_file_t() else {
     throw MTPError.operationFailed("failed to allocate file metadata")
 }
@@ -30,13 +27,10 @@ let ret = withProgressCallback(progress) { callback, data in
 return metadata.pointee.item_id
 ```
 
-After — factory creates + configures, method sends, property reads back the ID:
+After — `Upload` owns the C struct from creation to destruction:
 
 ```swift
-let attrs = try FileManager.default.attributesOfItem(atPath: localPath)
-let fileSize = (attrs[.size] as? UInt64) ?? 0
-
-guard let metadata = makeUploadMetadata(
+guard let upload = Upload(
     filename: filename, filesize: fileSize,
     parentId: parentId, storageId: storageId
 ) else {
@@ -44,10 +38,10 @@ guard let metadata = makeUploadMetadata(
 }
 
 let ret = withProgressCallback(progress) { callback, data in
-    metadata.send(device: raw, from: localPath, callback: callback, data: data)
+    upload.send(device: raw, from: localPath, callback: callback, data: data)
 }
 // ... error handling ...
-return metadata.itemId
+return upload.itemId
 ```
 
 No `defer`, no `pointee`, no `strdup`, no `LIBMTP_FILETYPE_UNKNOWN`, no `LIBMTP_destroy_file_t`.
@@ -68,10 +62,10 @@ guard let folder = LIBMTP_Find_Folder(folderTree, id) else {
 let ret = LIBMTP_Set_Folder_Name(raw, folder, newName)
 ```
 
-After — factory creates, method encapsulates find + mutate, interior pointer never escapes:
+After — `FolderTree` encapsulates find + mutate, interior pointer never escapes:
 
 ```swift
-guard let tree = makeFolderTree(device: raw) else {
+guard let tree = FolderTree(device: raw) else {
     _ = drainErrorStack(raw)
     throw MTPError.objectNotFound(id: id)
 }
@@ -80,7 +74,30 @@ guard let ret = tree.rename(device: raw, folderId: id, to: newName) else {
 }
 ```
 
-No `defer`, no `LIBMTP_Find_Folder`, no `LIBMTP_destroy_folder_t`. The interior pointer from `Find_Folder` lives and dies inside `rename()`.
+No `defer`, no `LIBMTP_Find_Folder`, no `LIBMTP_destroy_folder_t`.
+
+### Rename a file
+
+Before:
+
+```swift
+guard let file = LIBMTP_Get_Filemetadata(raw, id) else {
+    _ = drainErrorStack(raw)
+    throw MTPError.objectNotFound(id: id)
+}
+defer { LIBMTP_destroy_file_t(file) }
+let ret = LIBMTP_Set_File_Name(raw, file, newName)
+```
+
+After:
+
+```swift
+guard let handle = FileHandle(device: raw, id: id) else {
+    _ = drainErrorStack(raw)
+    throw MTPError.objectNotFound(id: id)
+}
+let ret = handle.rename(device: raw, to: newName)
+```
 
 ### List directory (file loop)
 
@@ -108,12 +125,12 @@ while let file = fileList {
 }
 ```
 
-After — `MTPOwnedFile` owns each node, deinit frees, `isFolder` replaces C enum:
+After — `FileNode` owns each node, deinit frees, `isFolder` replaces C enum:
 
 ```swift
-var cursor = makeFileList(device: raw, storageId: storageId, parentId: parentId)
+var cursor = FileNode.list(device: raw, storageId: storageId, parentId: parentId)
 while let rawPtr = cursor {
-    let node = MTPOwnedFile(rawPtr)
+    let node = FileNode(rawPtr)
     cursor = node.next
 
     if node.parentId != parentId { continue }
@@ -131,18 +148,84 @@ while let rawPtr = cursor {
 }
 ```
 
-No `defer`, no `pointee`, no `LIBMTP_FILETYPE_FOLDER`, no `LIBMTP_destroy_file_t`. Each `node` is freed when it goes out of scope at the end of the loop iteration.
+No `defer`, no `pointee`, no `LIBMTP_FILETYPE_FOLDER`, no `LIBMTP_destroy_file_t`.
 
 ## Design: `MTPCTypes.swift`
 
-All wrapper types and their factories live in a single new file. They are `internal` — implementation details, not public API.
+All wrapper types live in a single new file. They are `internal` — implementation details, not public API. Each type is use-case specific: named for what it *does*, not what C struct it wraps.
 
-### 1. MTPOwnedFile — single owned `LIBMTP_file_struct`
-
-Unifies three allocation patterns: per-node ownership from linked list iteration (`Get_Files_And_Folders`), single metadata lookup (`Get_Filemetadata`), and fresh allocation for uploads (`new_file_t`).
+### 1. Upload — outbound file metadata for `LIBMTP_Send_File_From_File`
 
 ```swift
-struct MTPOwnedFile: ~Copyable {
+struct Upload: ~Copyable {
+    private let pointer: UnsafeMutablePointer<LIBMTP_file_struct>
+
+    init?(filename: String, filesize: UInt64, parentId: UInt32, storageId: UInt32) {
+        guard let p = LIBMTP_new_file_t() else { return nil }
+        p.pointee.filename = strdup(filename)
+        p.pointee.filesize = filesize
+        p.pointee.parent_id = parentId
+        p.pointee.storage_id = storageId
+        p.pointee.filetype = LIBMTP_FILETYPE_UNKNOWN
+        self.pointer = p
+    }
+
+    deinit { LIBMTP_destroy_file_t(pointer) }
+
+    var itemId: UInt32 { pointer.pointee.item_id }
+
+    func send(
+        device: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>,
+        from localPath: String,
+        callback: LIBMTP_progressfunc_t?,
+        data: UnsafeMutableRawPointer?
+    ) -> CInt {
+        LIBMTP_Send_File_From_File(device, localPath, pointer, callback, data)
+    }
+}
+```
+
+All C struct configuration happens in `init`. `send()` and `itemId` are the only operations. No factory function needed — the `init` *is* the factory.
+
+### 2. FileHandle — single file metadata for rename, download, inspect
+
+```swift
+struct FileHandle: ~Copyable {
+    private let pointer: UnsafeMutablePointer<LIBMTP_file_struct>
+
+    init?(device: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>, id: UInt32) {
+        guard let p = LIBMTP_Get_Filemetadata(device, id) else { return nil }
+        self.pointer = p
+    }
+
+    deinit { LIBMTP_destroy_file_t(pointer) }
+
+    func toFileInfo() -> MTPFileInfo { MTPFileInfo(cFile: pointer) }
+
+    func rename(
+        device: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>,
+        to newName: String
+    ) -> CInt {
+        LIBMTP_Set_File_Name(device, pointer, newName)
+    }
+
+    func download(
+        device: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>,
+        to localPath: String,
+        callback: LIBMTP_progressfunc_t?,
+        data: UnsafeMutableRawPointer?
+    ) -> CInt {
+        LIBMTP_Get_File_To_File(device, pointer.pointee.item_id, localPath, callback, data)
+    }
+}
+```
+
+Used by `fileInfo()`, `renameFile()`, and `downloadFile()`.
+
+### 3. FileNode — single node during linked list iteration
+
+```swift
+struct FileNode: ~Copyable {
     private let pointer: UnsafeMutablePointer<LIBMTP_file_struct>
 
     fileprivate init(_ pointer: UnsafeMutablePointer<LIBMTP_file_struct>) {
@@ -158,96 +241,29 @@ struct MTPOwnedFile: ~Copyable {
     var parentId: UInt32 { pointer.pointee.parent_id }
     var isFolder: Bool { pointer.pointee.filetype == LIBMTP_FILETYPE_FOLDER }
 
-    func rename(
+    static func list(
         device: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>,
-        to newName: String
-    ) -> CInt {
-        LIBMTP_Set_File_Name(device, pointer, newName)
-    }
-
-    func send(
-        device: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>,
-        from localPath: String,
-        callback: LIBMTP_progressfunc_t?,
-        data: UnsafeMutableRawPointer?
-    ) -> CInt {
-        LIBMTP_Send_File_From_File(device, localPath, pointer, callback, data)
-    }
-
-    func download(
-        device: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>,
-        to localPath: String,
-        callback: LIBMTP_progressfunc_t?,
-        data: UnsafeMutableRawPointer?
-    ) -> CInt {
-        LIBMTP_Get_File_To_File(device, pointer.pointee.item_id, localPath, callback, data)
+        storageId: UInt32,
+        parentId: UInt32
+    ) -> UnsafeMutablePointer<LIBMTP_file_struct>? {
+        LIBMTP_Get_Files_And_Folders(device, storageId, parentId)
     }
 }
 ```
 
-`pointer` is `private`, `next` is `fileprivate` (only used in the linked list iteration pattern within `MTPCTypes.swift`). No C types or raw pointers escape the wrapper — `filetype` is exposed as `isFolder: Bool` rather than leaking `LIBMTP_filetype_t`.
+`list()` is a static factory returning the raw linked list head. Each node is wrapped individually during iteration via `fileprivate init`. `next` is `fileprivate` — only the iteration pattern inside `MTPCTypes.swift` uses it.
 
-Factory functions:
+`LIBMTP_destroy_file_t` frees a single node (flat singly-linked list), so per-node ownership is safe.
 
-```swift
-func makeFileList(
-    device: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>,
-    storageId: UInt32,
-    parentId: UInt32
-) -> UnsafeMutablePointer<LIBMTP_file_struct>? {
-    LIBMTP_Get_Files_And_Folders(device, storageId, parentId)
-}
-
-func makeFileMetadata(
-    device: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>,
-    id: UInt32
-) -> MTPOwnedFile? {
-    guard let p = LIBMTP_Get_Filemetadata(device, id) else { return nil }
-    return MTPOwnedFile(p)
-}
-
-func makeUploadMetadata(
-    filename: String,
-    filesize: UInt64,
-    parentId: UInt32,
-    storageId: UInt32
-) -> MTPOwnedFile? {
-    guard let p = LIBMTP_new_file_t() else { return nil }
-    p.pointee.filename = strdup(filename)
-    p.pointee.filesize = filesize
-    p.pointee.parent_id = parentId
-    p.pointee.storage_id = storageId
-    p.pointee.filetype = LIBMTP_FILETYPE_UNKNOWN
-    return MTPOwnedFile(p)
-}
-```
-
-`makeFileList` returns the raw pointer (not `MTPOwnedFile`) because the linked list is walked node-by-node — each node becomes an `MTPOwnedFile` inside the loop via its `fileprivate init`. Wrapping the head would imply ownership of the entire list, which is wrong since `destroy_file_t` only frees one node.
-
-`makeUploadMetadata` encapsulates all `pointee` access — callers never touch the C struct directly. The `strdup` for filename ownership transfer is hidden inside the factory.
-
-Linked list walk pattern:
+### 4. FolderTree — folder tree root with traversal and mutation
 
 ```swift
-var cursor = makeFileList(device: raw, storageId: storageId, parentId: parentId)
-while let rawPtr = cursor {
-    let node = MTPOwnedFile(rawPtr)
-    cursor = node.next
-    if node.parentId != parentId { continue }
-    results.append(node.toFileInfo())
-}
-```
-
-### 2. MTPOwnedFolderTree — folder tree root owner
-
-Owns the root from `LIBMTP_Get_Folder_List`. Deinit calls `LIBMTP_destroy_folder_t`, which recursively frees the entire tree. The recursive traversal helpers (`collectAllFolderIds`, `collectChildFolders`) move here as methods.
-
-```swift
-struct MTPOwnedFolderTree: ~Copyable {
+struct FolderTree: ~Copyable {
     private let root: UnsafeMutablePointer<LIBMTP_folder_struct>
 
-    fileprivate init(_ root: UnsafeMutablePointer<LIBMTP_folder_struct>) {
-        self.root = root
+    init?(device: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>) {
+        guard let p = LIBMTP_Get_Folder_List(device) else { return nil }
+        self.root = p
     }
 
     deinit { LIBMTP_destroy_folder_t(root) }
@@ -275,48 +291,35 @@ struct MTPOwnedFolderTree: ~Copyable {
 }
 ```
 
-`find()` is gone — the interior pointer from `LIBMTP_Find_Folder` never leaves the wrapper. `rename()` encapsulates the find + mutate sequence, keeping the interior pointer scoped to the method body.
+The interior pointer from `LIBMTP_Find_Folder` never leaves the wrapper — `rename()` encapsulates find + mutate.
 
-Factory:
+**Never wrap interior folder nodes in ~Copyable** — `LIBMTP_destroy_folder_t` frees the entire tree recursively. Only the root gets wrapped.
 
-```swift
-func makeFolderTree(
-    device: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>
-) -> MTPOwnedFolderTree? {
-    guard let p = LIBMTP_Get_Folder_List(device) else { return nil }
-    return MTPOwnedFolderTree(p)
-}
-```
-
-The two private recursive helpers move from `MTPDirectoryListing.swift` to `MTPCTypes.swift` with underscore-prefixed names (`_collectAllFolderIds`, `_collectChildFolders`).
-
-**Never wrap interior folder nodes in ~Copyable** — `destroy_folder_t` on an interior node would double-free children when the root is later destroyed.
+The two private recursive helpers (`_collectAllFolderIds`, `_collectChildFolders`) move from `MTPDirectoryListing.swift` to `MTPCTypes.swift`.
 
 ## Call sites to refactor
 
 ### `MTPDirectoryListing.swift`
 
 **`listDirectory`**:
-- `LIBMTP_Get_Folder_List` + explicit `LIBMTP_destroy_folder_t` → `makeFolderTree` (deinit handles free)
-- `LIBMTP_Get_Files_And_Folders` + per-node `defer { destroy }` → `makeFileList` + `MTPOwnedFile` per iteration
-- Remove private helpers `collectAllFolderIds` and `collectChildFolders` (moved to `MTPOwnedFolderTree`)
+- `LIBMTP_Get_Folder_List` + explicit destroy → `FolderTree(device:)`
+- `LIBMTP_Get_Files_And_Folders` + per-node `defer` → `FileNode.list()` + `FileNode` per iteration
+- Remove private helpers (moved to `FolderTree`)
 
 **`resolvePath`**:
-- Same file list loop: `makeFileList` + `MTPOwnedFile` per node
+- Same file list loop → `FileNode.list()` + `FileNode` per node
 
 ### `MTPFileOperations.swift`
 
-**`downloadFile`**: `LIBMTP_Get_File_To_File` called directly with raw device pointer → `makeFileMetadata(device:id:)`, then `file.download(device:to:callback:data:)`
+**`downloadFile`**: direct `LIBMTP_Get_File_To_File` → `FileHandle(device:id:)` + `handle.download()`
 
-**`uploadFile`**: `LIBMTP_new_file_t` + `defer` + 5 lines of `pointee` setup → `makeUploadMetadata(filename:filesize:parentId:storageId:)`, then `metadata.send(device:from:callback:data:)`, then `metadata.itemId`
+**`uploadFile`**: `LIBMTP_new_file_t` + 5 `pointee` writes + `defer` → `Upload(filename:filesize:parentId:storageId:)` + `upload.send()` + `upload.itemId`
 
-**`fileInfo`**: `LIBMTP_Get_Filemetadata` + `defer` → `makeFileMetadata(device:id:)`, then `file.toFileInfo()`
+**`fileInfo`**: `LIBMTP_Get_Filemetadata` + `defer` → `FileHandle(device:id:)` + `handle.toFileInfo()`
 
-**`renameFile`**: `LIBMTP_Get_Filemetadata` + `defer` + `LIBMTP_Set_File_Name` → `makeFileMetadata(device:id:)`, then `file.rename(device:to:)`
+**`renameFile`**: `Get_Filemetadata` + `defer` + `Set_File_Name` → `FileHandle(device:id:)` + `handle.rename()`
 
-**`renameFolder`**: `LIBMTP_Get_Folder_List` + `defer` + `LIBMTP_Find_Folder` + `LIBMTP_Set_Folder_Name` → `makeFolderTree(device:)`, then `tree.rename(device:folderId:to:)`
-
-**`listDirectory`**: `file.pointee.filetype != LIBMTP_FILETYPE_FOLDER` → `node.isFolder` (no C enum type leaks)
+**`renameFolder`**: `Get_Folder_List` + `defer` + `Find_Folder` + `Set_Folder_Name` → `FolderTree(device:)` + `tree.rename()`
 
 ## What does NOT change
 
