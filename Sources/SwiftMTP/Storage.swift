@@ -1,7 +1,7 @@
 import Clibmtp
 
 @MainActor
-public struct Storage {
+public struct Storage: Sendable {
 	private let device: Device
 	public let info: StorageInfo
 
