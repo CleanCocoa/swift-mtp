@@ -1,10 +1,10 @@
 import Clibmtp
 
-public typealias ProgressHandler = (UInt64, UInt64) -> Bool
+public typealias ProgressHandler = (_ sent: UInt64, _ total: UInt64) -> Bool
 
 func withProgressCallback<R>(
 	_ handler: ProgressHandler?,
-	body: (LIBMTP_progressfunc_t?, UnsafeMutableRawPointer?) -> R
+	body: (_ callback: LIBMTP_progressfunc_t?, _ context: UnsafeMutableRawPointer?) -> R
 ) -> R {
 	guard let handler else {
 		return body(nil, nil)
