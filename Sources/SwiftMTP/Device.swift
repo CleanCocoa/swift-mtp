@@ -15,8 +15,9 @@ public enum DeviceCapability: Sendable {
 ///   libmtp `Get_*name` functions return `malloc`-allocated strings with caller ownership.
 /// - `readEvent()` calls `LIBMTP_Read_Event` which blocks indefinitely on a USB interrupt
 ///   endpoint with no timeout or cancellation mechanism. Run on a dedicated thread.
+@MainActor
 public final class Device {
-	let raw: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>
+	nonisolated(unsafe) let raw: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>
 
 	init(raw device: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>) {
 		raw = device

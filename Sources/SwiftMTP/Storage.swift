@@ -1,5 +1,6 @@
 import Clibmtp
 
+@MainActor
 public struct Storage {
 	private let device: Device
 	public let info: StorageInfo

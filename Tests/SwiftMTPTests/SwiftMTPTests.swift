@@ -449,6 +449,7 @@ func `mtpDetectDevices returns empty without device`() throws {
 }
 
 @Suite(.serialized, .enabled(if: deviceConnected, "Skipping: no MTP device connected"))
+@MainActor
 struct HardwareTests {
 	@Test func `detect devices finds at least one`() throws {
 		mtpInitialize()
