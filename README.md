@@ -161,12 +161,11 @@ do throws(MTPError) {
 ```sh
 swift test                           # unit tests only
 swift test --filter MTPCoreTests     # core type tests
-swift test --filter SwiftMTPTests    # sync hardware tests
-swift test --filter SwiftMTPAsyncTests # async hardware tests
+swift test --filter HardwareTests    # hardware tests (requires device)
 MTP_DEVICE_CONNECTED=1 swift test    # all tests including hardware
 ```
 
-Hardware tests require a connected MTP device and only run when `MTP_DEVICE_CONNECTED=1` is set. These are serialized since libmtp is not thread-safe.
+Hardware tests require a connected MTP device and only run when `MTP_DEVICE_CONNECTED=1` is set. They use a single shared `MTPSession` and run serialized — libusb only allows one interface claim per process.
 
 ## Architecture
 
