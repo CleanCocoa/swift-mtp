@@ -166,14 +166,3 @@ MTP_DEVICE_CONNECTED=1 swift test    # all tests including hardware
 ```
 
 Hardware tests require a connected MTP device and only run when `MTP_DEVICE_CONNECTED=1` is set. They use a single shared `MTPSession` and run serialized — libusb only allows one interface claim per process.
-
-## Architecture
-
-Three-target SPM package (Swift 6.2, macOS 26):
-
-- **Clibmtp** — `.systemLibrary` wrapping `libmtp.h` via pkg-config
-- **MTPCore** — Internal target with shared types, Device class (package access), C wrappers
-- **SwiftMTP** — `@MainActor` `Device` wrapper for synchronous callers
-- **SwiftMTPAsync** — `MTPSession` actor wrapper for async callers
-
-All public value types are `Sendable`. Both `Device` and `MTPSession` cache device properties (`manufacturerName`, `modelName`, etc.) and `supportsCapability(_:)` at init as `nonisolated let` — no isolation crossing needed. Internal C resource management uses `~Copyable` structs (`Upload`, `FileHandle`, `FileNode`, `FolderTree`) that guarantee cleanup via `deinit`. Implicit C contracts (memory ownership, callback lifetimes, error stack semantics) are documented in docstrings on each wrapper type. The library operates statelessly — callers manage their own caching.
