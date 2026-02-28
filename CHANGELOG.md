@@ -7,6 +7,9 @@
 - Dedicated `Thread` for event polling (does not occupy the cooperative thread pool)
 - Cooperative cancellation via `Task` cancellation — poll loop exits within ~500ms
 
+### Fixed
+- `events()` stream now retains the `Device` for the stream's lifetime, preventing use-after-free if the caller drops its reference
+
 ### Changed
 - `readEvent()` docstring updated to recommend `events()` as the preferred alternative
 

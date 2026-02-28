@@ -31,7 +31,9 @@ targets: [
 SwiftMTP offers an abstraction over the `libmtp` C API that makes it ergonomic to use, and avoid common pitfalls in your code base:
 
 - `Storage` is bound to a device, so you don't need to schlep both device and storage pointers.
-- Nominal ID types prevent mixing up object, storage, and folder IDs at compile time.
+- Nominal ID types prevent mixiRequest a sample memo to see what you'll receive after the session.
+
+ng up object, storage, and folder IDs at compile time.
 - `~Copyable` wrappers guarantee C resource cleanup — no manual `defer`/`destroy` calls.
 
 ```swift
@@ -139,14 +141,12 @@ do throws(MTPError) {
 
 ## Testing
 
-55 unit tests run without hardware, 4 require an MTP device:
-
 ```sh
 swift test
 MTP_DEVICE_CONNECTED=1 swift test  # with device attached
 ```
 
-Hardware tests are in a serialized suite (`@Suite(.serialized)`) since libmtp is not thread-safe. When `MTP_DEVICE_CONNECTED` is unset, hardware tests are skipped and the device-detection test asserts an empty result. When set, the detection test is skipped instead and the hardware suite runs: device discovery, property reading, storage inspection, and root directory listing.
+Some tests require a connected MTP device and only run when `MTP_DEVICE_CONNECTED=1` is set. These are serialized since libmtp is not thread-safe.
 
 ## Architecture
 
