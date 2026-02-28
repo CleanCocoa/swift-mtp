@@ -1,7 +1,7 @@
 import Clibmtp
 
 extension Device {
-	public func contents(
+	func contents(
 		of parent: Folder = .root,
 		storage: StorageID = .all
 	) throws(MTPError) -> [FileInfo] {
@@ -50,26 +50,26 @@ extension Device {
 		return results
 	}
 
-	public func contents(
+	func contents(
 		of parent: Folder = .root,
 		storage: StorageInfo
 	) throws(MTPError) -> [FileInfo] {
 		try contents(of: parent, storage: storage.id)
 	}
 
-	public func resolvePath(_ path: String, storage: StorageInfo) throws(MTPError) -> FileInfo? {
+	func resolvePath(_ path: String, storage: StorageInfo) throws(MTPError) -> FileInfo? {
 		try resolvePath(path, storage: storage.id)
 	}
 
-	public func resolvePath(_ path: Path, storage: StorageInfo) throws(MTPError) -> FileInfo? {
+	func resolvePath(_ path: Path, storage: StorageInfo) throws(MTPError) -> FileInfo? {
 		try resolvePath(path.description, storage: storage.id)
 	}
 
-	public func resolvePath(_ path: Path, storage: StorageID = .all) throws(MTPError) -> FileInfo? {
+	func resolvePath(_ path: Path, storage: StorageID = .all) throws(MTPError) -> FileInfo? {
 		try resolvePath(path.description, storage: storage)
 	}
 
-	public func resolvePath(_ path: String, storage: StorageID = .all) throws(MTPError) -> FileInfo? {
+	func resolvePath(_ path: String, storage: StorageID = .all) throws(MTPError) -> FileInfo? {
 		let components = path.split(separator: "/").map(String.init)
 		if components.isEmpty { return nil }
 

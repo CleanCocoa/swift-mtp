@@ -8,23 +8,14 @@ public enum DeviceCapability: Sendable {
 	case editObjects
 }
 
-/// ## C contracts
-/// - libmtp is **not thread-safe**. A single device must not be accessed from multiple threads
-///   concurrently. This class does not add synchronization — callers must serialize access.
-/// - `getString` helpers call `free()` on the returned pointer. This is correct because all
-///   libmtp `Get_*name` functions return `malloc`-allocated strings with caller ownership.
-/// - `readEvent()` calls `LIBMTP_Read_Event` which blocks indefinitely on a USB interrupt
-///   endpoint with no timeout or cancellation mechanism. Prefer `events()` which returns
-///   a cancellable `AsyncStream` using the async poll API.
-@MainActor
-public final class Device {
+final class Device {
 	nonisolated(unsafe) let raw: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>
 
 	init(raw device: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>) {
 		raw = device
 	}
 
-	public init(busLocation: BusLocation, devnum: DeviceNumber) throws(MTPError) {
+	init(busLocation: BusLocation, devnum: DeviceNumber) throws(MTPError) {
 		guard MTP.isInitialized else { throw .notInitialized }
 		var rawDevices: UnsafeMutablePointer<LIBMTP_raw_device_t>? = nil
 		var numDevices: CInt = 0
@@ -50,19 +41,15 @@ public final class Device {
 		raw = device
 	}
 
-	public static func detect() throws(MTPError) -> [RawDevice] {
-		try MTP.detectDevices()
-	}
-
 	deinit {
 		LIBMTP_Release_Device(raw)
 	}
 
-	public var manufacturerName: String? { getString(LIBMTP_Get_Manufacturername) }
-	public var modelName: String? { getString(LIBMTP_Get_Modelname) }
-	public var serialNumber: String? { getString(LIBMTP_Get_Serialnumber) }
-	public var friendlyName: String? { getString(LIBMTP_Get_Friendlyname) }
-	public var deviceVersion: String? { getString(LIBMTP_Get_Deviceversion) }
+	var manufacturerName: String? { getString(LIBMTP_Get_Manufacturername) }
+	var modelName: String? { getString(LIBMTP_Get_Modelname) }
+	var serialNumber: String? { getString(LIBMTP_Get_Serialnumber) }
+	var friendlyName: String? { getString(LIBMTP_Get_Friendlyname) }
+	var deviceVersion: String? { getString(LIBMTP_Get_Deviceversion) }
 
 	private func getString(
 		_ cfunc: (UnsafeMutablePointer<LIBMTP_mtpdevice_struct>?) -> UnsafeMutablePointer<CChar>?
@@ -72,11 +59,11 @@ public final class Device {
 		return String(cString: cStr)
 	}
 
-	public nonisolated func events() -> AsyncStream<Event> {
+	nonisolated func events() -> AsyncStream<Event> {
 		eventStream(device: raw, owner: self)
 	}
 
-	public func readEvent() throws(MTPError) -> Event {
+	func readEvent() throws(MTPError) -> Event {
 		var event = LIBMTP_EVENT_NONE
 		var param: UInt32 = 0
 		let ret = LIBMTP_Read_Event(raw, &event, &param)
@@ -87,7 +74,7 @@ public final class Device {
 		return mtpEvent
 	}
 
-	public func supportsCapability(_ cap: DeviceCapability) -> Bool {
+	func supportsCapability(_ cap: DeviceCapability) -> Bool {
 		let cCap: LIBMTP_devicecap_t =
 			switch cap {
 			case .moveObject: LIBMTP_DEVICECAP_MoveObject

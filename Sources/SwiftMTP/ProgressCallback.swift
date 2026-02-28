@@ -1,6 +1,6 @@
 import Clibmtp
 
-public typealias ProgressHandler = (_ sent: UInt64, _ total: UInt64) -> ProgressAction
+public typealias ProgressHandler = @Sendable (_ sent: UInt64, _ total: UInt64) -> ProgressAction
 
 /// Scoped bridge that lets callers pass an optional Swift progress closure to libmtp's C transfer functions.
 ///
