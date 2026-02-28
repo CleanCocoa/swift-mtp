@@ -11,12 +11,14 @@ let package = Package(
     targets: [
         .systemLibrary(
             name: "Clibmtp",
-            pkgConfig: "libmtp",
             providers: [.brew(["libmtp"])]
         ),
         .target(
             name: "MTPCore",
-            dependencies: ["Clibmtp"]
+            dependencies: ["Clibmtp"],
+            linkerSettings: [
+                .unsafeFlags(["-L/opt/homebrew/lib"])
+            ]
         ),
         .target(
             name: "SwiftMTP",
