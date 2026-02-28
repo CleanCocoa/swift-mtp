@@ -39,7 +39,7 @@ ng up object, storage, and folder IDs at compile time.
 ```swift
 import SwiftMTP
 
-mtpInitialize()
+try mtpInitialize()
 
 // discover and open the first device
 var raw = try mtpDetectDevices().first!
@@ -104,6 +104,19 @@ entries.sorted(.byDateDescending)
 entries.sorted(.directoriesFirst)    // dirs before files, then by name within each group
 ```
 
+### Initialization
+
+`mtpInitialize()` must be called exactly once before using the library. It builds libmtp's internal filetype and property mapping tables, and loads MTPZ encryption data. Calling it a second time throws `.alreadyInitialized`. The current state is inspectable via `mtpIsInitialized`:
+
+```swift
+try mtpInitialize()       // first call succeeds
+mtpIsInitialized          // true
+
+try mtpInitialize()       // throws MTPError.alreadyInitialized
+```
+
+Entry points (`mtpDetectDevices()`, `RawDevice.open()`, `Device.init(busLocation:devnum:)`) throw `.notInitialized` if the library hasn't been set up. For contexts where double-init is benign (app launch, tests), use `try? mtpInitialize()`.
+
 ### Error Handling
 
 All fallible operations use typed throws (`throws(MTPError)`):
@@ -118,7 +131,7 @@ do throws(MTPError) {
 }
 ```
 
-`MTPError` cases: `noDeviceAttached`, `connectionFailed`, `storageFull`, `objectNotFound`, `operationFailed`, `pathNotFound`, `notFileURL`, `moveNotSupported`, `cancelled`, `deviceDisconnected`.
+`MTPError` cases: `alreadyInitialized`, `notInitialized`, `noDeviceAttached`, `connectionFailed`, `storageFull`, `objectNotFound`, `operationFailed`, `pathNotFound`, `notFileURL`, `moveNotSupported`, `cancelled`, `deviceDisconnected`.
 
 ## Types
 
