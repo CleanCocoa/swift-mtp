@@ -1,13 +1,12 @@
 import Clibmtp
 import Foundation
 
-@MainActor
 public struct Storage: Sendable {
-	private let device: Device
+	private let session: MTPSession
 	public let info: StorageInfo
 
-	init(device: Device, info: StorageInfo) {
-		self.device = device
+	init(session: MTPSession, info: StorageInfo) {
+		self.session = session
 		self.info = info
 	}
 
@@ -16,16 +15,16 @@ public struct Storage: Sendable {
 	public var maxCapacity: UInt64 { info.maxCapacity }
 	public var freeSpace: UInt64 { info.freeSpace }
 
-	public func contents(of parent: Folder = .root) throws(MTPError) -> [FileInfo] {
-		try device.contents(of: parent, storage: id)
+	public func contents(of parent: Folder = .root) async throws(MTPError) -> [FileInfo] {
+		try await session.contents(of: parent, storage: id)
 	}
 
-	public func resolvePath(_ path: String) throws(MTPError) -> FileInfo? {
-		try device.resolvePath(path, storage: id)
+	public func resolvePath(_ path: String) async throws(MTPError) -> FileInfo? {
+		try await session.resolvePath(path, storage: id)
 	}
 
-	public func resolvePath(_ path: Path) throws(MTPError) -> FileInfo? {
-		try device.resolvePath(path.description, storage: id)
+	public func resolvePath(_ path: Path) async throws(MTPError) -> FileInfo? {
+		try await session.resolvePath(path.description, storage: id)
 	}
 
 	@discardableResult
@@ -34,8 +33,8 @@ public struct Storage: Sendable {
 		to parent: Folder,
 		as filename: String? = nil,
 		progress: ProgressHandler? = nil
-	) throws(MTPError) -> FileInfo {
-		try device.upload(from: url, to: parent, storage: id, as: filename, progress: progress)
+	) async throws(MTPError) -> FileInfo {
+		try await session.upload(from: url, to: parent, storage: id, as: filename, progress: progress)
 	}
 
 	@discardableResult
@@ -44,72 +43,72 @@ public struct Storage: Sendable {
 		to parent: Folder,
 		as filename: String,
 		progress: ProgressHandler? = nil
-	) throws(MTPError) -> FileInfo {
-		try device.upload(from: localPath, to: parent, storage: id, as: filename, progress: progress)
+	) async throws(MTPError) -> FileInfo {
+		try await session.upload(from: localPath, to: parent, storage: id, as: filename, progress: progress)
 	}
 
 	@discardableResult
-	public func makeDirectory(named name: String, in parent: Folder) throws(MTPError) -> FileInfo {
-		try device.makeDirectory(named: name, in: parent, storage: id)
+	public func makeDirectory(named name: String, in parent: Folder) async throws(MTPError) -> FileInfo {
+		try await session.makeDirectory(named: name, in: parent, storage: id)
 	}
 
-	public func download(_ id: ObjectID, to url: URL, progress: ProgressHandler? = nil) throws(MTPError) {
-		try device.download(id, to: url, progress: progress)
+	public func download(_ id: ObjectID, to url: URL, progress: ProgressHandler? = nil) async throws(MTPError) {
+		try await session.download(id, to: url, progress: progress)
 	}
 
-	public func download(_ id: ObjectID, to localPath: String, progress: ProgressHandler? = nil) throws(MTPError) {
-		try device.download(id, to: localPath, progress: progress)
+	public func download(_ id: ObjectID, to localPath: String, progress: ProgressHandler? = nil) async throws(MTPError) {
+		try await session.download(id, to: localPath, progress: progress)
 	}
 
-	public func info(for id: ObjectID) throws(MTPError) -> FileInfo {
-		try device.info(for: id)
+	public func info(for id: ObjectID) async throws(MTPError) -> FileInfo {
+		try await session.info(for: id)
 	}
 
-	public func delete(_ id: ObjectID) throws(MTPError) {
-		try device.delete(id)
+	public func delete(_ id: ObjectID) async throws(MTPError) {
+		try await session.delete(id)
 	}
 
 	@discardableResult
-	public func rename(_ id: ObjectID, to newName: String) throws(MTPError) -> FileInfo {
-		try device.rename(id, to: newName)
+	public func rename(_ id: ObjectID, to newName: String) async throws(MTPError) -> FileInfo {
+		try await session.rename(id, to: newName)
 	}
 
-	public func move(_ objectId: ObjectID, to parent: Folder) throws(MTPError) {
-		try device.move(objectId, to: parent, storage: id)
+	public func move(_ objectId: ObjectID, to parent: Folder) async throws(MTPError) {
+		try await session.move(objectId, to: parent, storage: id)
 	}
 
-	public func download(_ file: some FileReference, to url: URL, progress: ProgressHandler? = nil) throws(MTPError) {
-		try device.download(file.objectID, to: url, progress: progress)
+	public func download(_ file: some FileReference, to url: URL, progress: ProgressHandler? = nil) async throws(MTPError) {
+		try await session.download(file.objectID, to: url, progress: progress)
 	}
 
 	public func download(
 		_ file: some FileReference,
 		to localPath: String,
 		progress: ProgressHandler? = nil
-	) throws(MTPError) {
-		try device.download(file.objectID, to: localPath, progress: progress)
+	) async throws(MTPError) {
+		try await session.download(file.objectID, to: localPath, progress: progress)
 	}
 
-	public func info(for file: some FileReference) throws(MTPError) -> FileInfo {
-		try device.info(for: file.objectID)
+	public func info(for file: some FileReference) async throws(MTPError) -> FileInfo {
+		try await session.info(for: file.objectID)
 	}
 
-	public func delete(_ file: some FileReference) throws(MTPError) {
-		try device.delete(file.objectID)
+	public func delete(_ file: some FileReference) async throws(MTPError) {
+		try await session.delete(file.objectID)
 	}
 
 	@discardableResult
-	public func rename(_ file: some FileReference, to newName: String) throws(MTPError) -> FileInfo {
-		try device.rename(file.objectID, to: newName)
+	public func rename(_ file: some FileReference, to newName: String) async throws(MTPError) -> FileInfo {
+		try await session.rename(file.objectID, to: newName)
 	}
 
-	public func move(_ file: some FileReference, to parent: Folder) throws(MTPError) {
-		try device.move(file.objectID, to: parent, storage: id)
+	public func move(_ file: some FileReference, to parent: Folder) async throws(MTPError) {
+		try await session.move(file.objectID, to: parent, storage: id)
 	}
 }
 
 extension Device {
-	public func storageInfo() -> [StorageInfo] {
+	func storageInfo() -> [StorageInfo] {
 		var result: [StorageInfo] = []
 		var current = raw.pointee.storage
 		while let storage = current {
@@ -118,10 +117,4 @@ extension Device {
 		}
 		return result
 	}
-
-	public func storages() -> [Storage] {
-		storageInfo().map { Storage(device: self, info: $0) }
-	}
-
-	public var defaultStorage: Storage? { storages().first }
 }
