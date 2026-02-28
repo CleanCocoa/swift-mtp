@@ -509,6 +509,12 @@ func `MTP.detectDevices() returns empty without device`() throws {
 
 @Suite(.serialized, .enabled(if: deviceConnected, "Skipping: no MTP device connected"))
 struct HardwareTests {
+	static let shared: MTPSession = {
+		try? MTP.initialize()
+		var devices = try! MTPSession.detect()
+		return try! MTPSession(opening: &devices[0])
+	}()
+
 	@Test func `detect devices finds at least one`() throws {
 		try? MTP.initialize()
 		let devices = try MTPSession.detect()
@@ -516,10 +522,7 @@ struct HardwareTests {
 	}
 
 	@Test func `open device and read properties`() async throws {
-		try? MTP.initialize()
-		let devices = try MTPSession.detect()
-		var raw = try #require(devices.first)
-		let session = try MTPSession(opening: &raw)
+		let session = HardwareTests.shared
 		let manufacturer = await session.manufacturerName
 		let model = await session.modelName
 		let serial = await session.serialNumber
@@ -536,10 +539,7 @@ struct HardwareTests {
 	}
 
 	@Test func `list root directory`() async throws {
-		try? MTP.initialize()
-		let devices = try MTPSession.detect()
-		var raw = try #require(devices.first)
-		let session = try MTPSession(opening: &raw)
+		let session = HardwareTests.shared
 		let entries = try await session.contents()
 		#expect(!entries.isEmpty)
 		for entry in entries {
@@ -548,10 +548,7 @@ struct HardwareTests {
 	}
 
 	@Test func `eventStream retains owner for stream lifetime`() async throws {
-		try? MTP.initialize()
-		let devices = try MTPSession.detect()
-		var raw = try #require(devices.first)
-		let session = try MTPSession(opening: &raw)
+		let session = HardwareTests.shared
 
 		final class Witness {}
 		weak var weakWitness: Witness?
@@ -573,10 +570,7 @@ struct HardwareTests {
 	}
 
 	@Test func `events() stream can be cancelled`() async throws {
-		try? MTP.initialize()
-		let devices = try MTPSession.detect()
-		var raw = try #require(devices.first)
-		let session = try MTPSession(opening: &raw)
+		let session = HardwareTests.shared
 
 		let eventTask = Task.detached {
 			var count = 0
