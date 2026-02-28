@@ -2,7 +2,7 @@ import Clibmtp
 import Foundation
 import Synchronization
 
-private final class EventCallbackContext {
+final class EventCallbackContext {
 	var ret: Int32 = -1
 	var event: LIBMTP_event_t = LIBMTP_EVENT_NONE
 	var param: UInt32 = 0

@@ -456,6 +456,13 @@ func `mtpDetectDevices returns empty without device`() throws {
 	#expect(devices.isEmpty)
 }
 
+@Test func `EventCallbackContext has sentinel initial values`() {
+	let ctx = EventCallbackContext()
+	#expect(ctx.ret == -1)
+	#expect(ctx.event == LIBMTP_EVENT_NONE)
+	#expect(ctx.param == 0)
+}
+
 @Suite(.serialized, .enabled(if: deviceConnected, "Skipping: no MTP device connected"))
 @MainActor
 struct HardwareTests {
@@ -489,5 +496,24 @@ struct HardwareTests {
 		for entry in entries {
 			#expect(!entry.name.isEmpty)
 		}
+	}
+
+	@Test func `events() stream can be cancelled`() async throws {
+		mtpInitialize()
+		let devices = try mtpDetectDevices()
+		var raw = try #require(devices.first)
+		let device = try raw.open()
+
+		let eventTask = Task.detached {
+			var count = 0
+			for await _ in device.events() {
+				count += 1
+			}
+			return count
+		}
+
+		try await Task.sleep(for: .seconds(2))
+		eventTask.cancel()
+		let _ = await eventTask.value
 	}
 }
