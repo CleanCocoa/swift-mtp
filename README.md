@@ -73,18 +73,15 @@ if device.supportsCapability(.moveObject) {
 }
 try device.delete(backup.id)
 
-// listen for events (blocking — run on a background thread)
-Task.detached {
-    while true {
-        do {
-            let event = try device.readEvent()
-            print("Event: \(event)")
-        } catch .deviceDisconnected {
-            print("Device disconnected")
-            break
-        }
+// listen for events (cancellable AsyncStream)
+let eventTask = Task.detached {
+    for await event in device.events() {
+        print("Event: \(event)")
     }
+    print("Event stream ended")
 }
+// later:
+eventTask.cancel()
 ```
 
 ### Sorting
@@ -142,7 +139,7 @@ do throws(MTPError) {
 
 ## Testing
 
-54 unit tests run without hardware, 3 require an MTP device:
+55 unit tests run without hardware, 4 require an MTP device:
 
 ```sh
 swift test

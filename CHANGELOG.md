@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.6.0] — 2026-02-28
+
+### Added
+- `Device.events()` returning cancellable `AsyncStream<Event>` using `LIBMTP_Read_Event_Async` + poll loop
+- Dedicated `Thread` for event polling (does not occupy the cooperative thread pool)
+- Cooperative cancellation via `Task` cancellation — poll loop exits within ~500ms
+
+### Changed
+- `readEvent()` docstring updated to recommend `events()` as the preferred alternative
+
 ## [0.5.0] — 2026-02-28
 
 ### Added
