@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.1 — 2026-02-28
+
+### Added
+- `Hashable` conformance for `FileInfo`, `DeviceCapability`, `StorageInfo`, and `ProgressAction`
+- LICENSE file
+
+### Changed
+- Removed architecture section from README
+
 ## 0.9.0 — 2026-02-28
 
 ### Fixed
