@@ -132,29 +132,36 @@ do throws(MTPError) {
 
 ## Types
 
+### Core API
+
 | Type | Description |
 |------|-------------|
 | `MTP` | Library namespace. `initialize()`, `isInitialized`, `detectDevices()`. |
+| `DetectedDevice` | Discovered device before opening. Pass to `Device(opening:)` or `MTPSession(opening:)`. |
 | `Device` | `@MainActor` wrapper (SwiftMTP). Cached nonisolated properties, sync methods. |
 | `MTPSession` | Actor wrapper (SwiftMTPAsync). Cached nonisolated properties, async methods. |
-| `DetectedDevice` | Discovered device before opening. Pass to `Device(opening:)` or `MTPSession(opening:)`. |
+| `Storage` | Device/session-bound storage handle for scoped operations (contents, upload, mkdir, move). |
 | `FileInfo` | Unified file/folder metadata (id, name, size, dates, isDirectory, folder). |
 | `FileInfo.SortOrder` | Enum-based sorting: `.byName`, `.bySize`, `.byDate`, `.directoriesFirst`, etc. |
-| `Storage` | Device/session-bound storage handle for scoped operations (contents, upload, mkdir, move). |
-| `StorageInfo` | Storage pool value type (id, description, capacity, free space, usedSpace, percentFull). |
-| `ObjectID` | Nominal wrapper for MTP object IDs. `.root` for the root object. |
-| `StorageID` | Nominal wrapper for storage pool IDs. `.all` for all storages. |
+| `Event` | Event enum for device notifications (store/object added/removed, property changed). |
+| `MTPError` | Typed error enum covering all failure modes. |
+| `FileReference` | Protocol for types that identify an MTP object (`ObjectID`, `FileInfo`, `Folder`). |
+| `ProgressAction` | Transfer control enum: `.continue` or `.cancel`. |
+| `DeviceCapability` | Device capability flags (moveObject, copyObject, etc.). |
+
+### Value Types
+
+| Type | Description |
+|------|-------------|
+| `StorageInfo` | Storage pool metadata (id, description, capacity, free space, usedSpace, percentFull). |
 | `Folder` | Compile-time safe folder reference. `.root` for the root directory. |
 | `Path` | Type-safe path with component splitting. `ExpressibleByStringLiteral`. |
+| `ObjectID` | Nominal wrapper for MTP object IDs. `.root` for the root object. |
+| `StorageID` | Nominal wrapper for storage pool IDs. `.all` for all storages. |
 | `BusLocation` | Nominal wrapper for USB bus location. |
 | `DeviceNumber` | Nominal wrapper for USB device number. |
 | `VendorID` | Nominal wrapper for USB vendor ID (hex description). |
 | `ProductID` | Nominal wrapper for USB product ID (hex description). |
-| `FileReference` | Protocol for types that identify an MTP object (`ObjectID`, `FileInfo`, `Folder`). |
-| `Event` | Event enum for device notifications (store/object added/removed, property changed). |
-| `ProgressAction` | Transfer control enum: `.continue` or `.cancel`. |
-| `MTPError` | Typed error enum covering all failure modes. |
-| `DeviceCapability` | Device capability flags (moveObject, copyObject, etc.). |
 
 ## Testing
 
