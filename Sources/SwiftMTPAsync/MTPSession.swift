@@ -24,7 +24,7 @@ public actor MTPSession {
 		self.capabilities = device.capabilityBitmask
 	}
 
-	public init(opening raw: inout RawDevice) throws(MTPError) {
+	public init(opening raw: inout DetectedDevice) throws(MTPError) {
 		self.init(device: try raw.open())
 	}
 
@@ -32,7 +32,7 @@ public actor MTPSession {
 		self.init(device: try Device(busLocation: busLocation, devnum: devnum))
 	}
 
-	public static func detect() throws(MTPError) -> [RawDevice] {
+	public static func detect() throws(MTPError) -> [DetectedDevice] {
 		try MTP.detectDevices()
 	}
 }

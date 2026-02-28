@@ -70,8 +70,8 @@ import Testing
 	#expect(e9 == .deviceDisconnected)
 }
 
-@Test func `RawDevice stores properties`() {
-	let dev = RawDevice(
+@Test func `DetectedDevice stores properties`() {
+	let dev = DetectedDevice(
 		busLocation: BusLocation(rawValue: 1),
 		devnum: DeviceNumber(rawValue: 2),
 		vendor: "Acme",

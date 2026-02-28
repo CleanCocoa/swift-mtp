@@ -19,7 +19,7 @@ public enum MTP {
 	/// ## C contract
 	/// `LIBMTP_Detect_Raw_Devices` allocates a flat `malloc` array of `LIBMTP_raw_device_t`.
 	/// Caller must `free()` the array pointer (not individual elements).
-	public static func detectDevices() throws(MTPError) -> [RawDevice] {
+	public static func detectDevices() throws(MTPError) -> [DetectedDevice] {
 		guard isInitialized else { throw .notInitialized }
 		var rawDevices: UnsafeMutablePointer<LIBMTP_raw_device_t>? = nil
 		var numDevices: CInt = 0
@@ -32,7 +32,7 @@ public enum MTP {
 			throw MTPError.operationFailed("device detection failed")
 		}
 		return (0..<numDevices).map { i in
-			RawDevice(cRawDevice: &rawDevices![Int(i)])
+			DetectedDevice(cDetectedDevice: &rawDevices![Int(i)])
 		}
 	}
 }

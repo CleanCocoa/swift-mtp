@@ -21,7 +21,7 @@ public final class Device {
 		self.capabilities = device.capabilityBitmask
 	}
 
-	public convenience init(opening raw: inout RawDevice) throws(MTPError) {
+	public convenience init(opening raw: inout DetectedDevice) throws(MTPError) {
 		self.init(device: try raw.open())
 	}
 
@@ -29,7 +29,7 @@ public final class Device {
 		self.init(device: try MTPCore.Device(busLocation: busLocation, devnum: devnum))
 	}
 
-	public static func detect() throws(MTPError) -> [RawDevice] {
+	public static func detect() throws(MTPError) -> [DetectedDevice] {
 		try MTP.detectDevices()
 	}
 

@@ -137,7 +137,7 @@ do throws(MTPError) {
 | `MTP` | Library namespace. `initialize()`, `isInitialized`, `detectDevices()`. |
 | `Device` | `@MainActor` wrapper (SwiftMTP). Cached nonisolated properties, sync methods. |
 | `MTPSession` | Actor wrapper (SwiftMTPAsync). Cached nonisolated properties, async methods. |
-| `RawDevice` | Discovered device before opening. Pass to `Device(opening:)` or `MTPSession(opening:)`. |
+| `DetectedDevice` | Discovered device before opening. Pass to `Device(opening:)` or `MTPSession(opening:)`. |
 | `FileInfo` | Unified file/folder metadata (id, name, size, dates, isDirectory, folder). |
 | `FileInfo.SortOrder` | Enum-based sorting: `.byName`, `.bySize`, `.byDate`, `.directoriesFirst`, etc. |
 | `Storage` | Device/session-bound storage handle for scoped operations (contents, upload, mkdir, move). |

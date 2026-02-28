@@ -1,6 +1,6 @@
 @preconcurrency import Clibmtp
 
-public struct RawDevice: Sendable {
+public struct DetectedDevice: Sendable {
 	public let busLocation: BusLocation
 	public let devnum: DeviceNumber
 	public let vendor: String
@@ -28,8 +28,8 @@ public struct RawDevice: Sendable {
 		self.cRaw.devnum = devnum.rawValue
 	}
 
-	init(cRawDevice: UnsafePointer<LIBMTP_raw_device_struct>) {
-		let raw = cRawDevice.pointee
+	init(cDetectedDevice: UnsafePointer<LIBMTP_raw_device_struct>) {
+		let raw = cDetectedDevice.pointee
 		busLocation = BusLocation(rawValue: raw.bus_location)
 		devnum = DeviceNumber(rawValue: raw.devnum)
 		vendor = raw.device_entry.vendor.map { String(cString: $0) } ?? ""
