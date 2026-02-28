@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.8.0 — 2026-02-28
+
+### Added
+- `MTPSession` public actor for dedicated USB I/O isolation (`SwiftMTPAsync` product)
+- `SwiftMTP` sync product with `@MainActor Device` wrapper
+- `MTPCore` internal shared target for types, nominal IDs, and `~Copyable` wrappers
+
+### Changed
+- Split package into three targets: `MTPCore` (internal), `SwiftMTP` (sync), `SwiftMTPAsync` (async)
+- `Device` is now `package` access in MTPCore; public API surface is `SwiftMTP.Device` or `SwiftMTPAsync.MTPSession`
+- Device properties (`name`, `serialNumber`, `batteryLevel`, etc.) cached as `nonisolated let` at init
+- Hardware tests consolidated into `SwiftMTPTests` and `SwiftMTPAsyncTests`
+- Removed `pkgConfig` from system library target to eliminate prohibited `-framework IOKit` warnings
+
 ## 0.7.0 — 2026-02-28
 
 ### Added
