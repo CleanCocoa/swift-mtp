@@ -498,6 +498,31 @@ struct HardwareTests {
 		}
 	}
 
+	@Test func `eventStream retains owner for stream lifetime`() async throws {
+		mtpInitialize()
+		let devices = try mtpDetectDevices()
+		var raw = try #require(devices.first)
+		let device = try raw.open()
+
+		final class Witness {}
+		weak var weakWitness: Witness?
+		var stream: AsyncStream<Event>?
+
+		do {
+			let witness = Witness()
+			weakWitness = witness
+			stream = eventStream(device: device.raw, owner: witness)
+		}
+
+		#expect(weakWitness != nil, "eventStream should retain its owner")
+
+		let s = stream!
+		stream = nil
+		let task = Task.detached { for await _ in s {} }
+		task.cancel()
+		await task.value
+	}
+
 	@Test func `events() stream can be cancelled`() async throws {
 		mtpInitialize()
 		let devices = try mtpDetectDevices()

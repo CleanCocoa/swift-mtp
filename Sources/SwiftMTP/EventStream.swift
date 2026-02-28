@@ -14,14 +14,17 @@ private final class CancellationFlag: Sendable {
 	func cancel() { _value.withLock { $0 = true } }
 }
 
-func eventStream(device: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>) -> AsyncStream<Event> {
+func eventStream(device: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>, owner: AnyObject? = nil) -> AsyncStream<Event> {
 	AsyncStream { continuation in
 		let cancelled = CancellationFlag()
 		continuation.onTermination = { _ in cancelled.cancel() }
 
 		nonisolated(unsafe) let devicePtr = device
+		nonisolated(unsafe) let retainedOwner = owner
 		let thread = Thread {
-			eventPollLoop(device: devicePtr, continuation: continuation, cancelled: cancelled)
+			withExtendedLifetime(retainedOwner) {
+				eventPollLoop(device: devicePtr, continuation: continuation, cancelled: cancelled)
+			}
 		}
 		thread.name = "SwiftMTP.EventPoll"
 		thread.qualityOfService = .utility

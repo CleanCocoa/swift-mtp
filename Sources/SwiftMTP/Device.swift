@@ -68,7 +68,7 @@ public final class Device {
 	}
 
 	public nonisolated func events() -> AsyncStream<Event> {
-		eventStream(device: raw)
+		eventStream(device: raw, owner: self)
 	}
 
 	public func readEvent() throws(MTPError) -> Event {
