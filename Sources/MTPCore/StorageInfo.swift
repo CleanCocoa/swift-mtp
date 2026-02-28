@@ -1,6 +1,6 @@
 @preconcurrency import Clibmtp
 
-public struct StorageInfo: Sendable {
+public struct StorageInfo: Hashable, Sendable {
 	public let id: StorageID
 	public let description: String
 	public let maxCapacity: UInt64

@@ -1,4 +1,4 @@
-public enum ProgressAction: Sendable, ExpressibleByBooleanLiteral {
+public enum ProgressAction: Hashable, Sendable, ExpressibleByBooleanLiteral {
 	case `continue`
 	case cancel
 
