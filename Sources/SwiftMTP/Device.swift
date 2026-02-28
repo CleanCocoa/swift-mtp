@@ -14,7 +14,8 @@ public enum DeviceCapability: Sendable {
 /// - `getString` helpers call `free()` on the returned pointer. This is correct because all
 ///   libmtp `Get_*name` functions return `malloc`-allocated strings with caller ownership.
 /// - `readEvent()` calls `LIBMTP_Read_Event` which blocks indefinitely on a USB interrupt
-///   endpoint with no timeout or cancellation mechanism. Run on a dedicated thread.
+///   endpoint with no timeout or cancellation mechanism. Prefer `events()` which returns
+///   a cancellable `AsyncStream` using the async poll API.
 @MainActor
 public final class Device {
 	nonisolated(unsafe) let raw: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>
@@ -64,6 +65,10 @@ public final class Device {
 		guard let cStr = cfunc(raw) else { return nil }
 		defer { free(cStr) }
 		return String(cString: cStr)
+	}
+
+	public nonisolated func events() -> AsyncStream<Event> {
+		eventStream(device: raw)
 	}
 
 	public func readEvent() throws(MTPError) -> Event {
