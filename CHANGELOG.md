@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.0 — 2026-02-28
+
+### Fixed
+- External library usage now includes `pkgConfig` for correct linker resolution
+- Suppress libmtp stdout noise (device detection/open messages) via POSIX `dup2` redirect to `/dev/null`
+
 ## 0.8.0 — 2026-02-28
 
 ### Added
