@@ -30,7 +30,7 @@ import Foundation
 /// // Rename — returns updated metadata
 /// let renamed = try device.rename(objectID, to: "Vacation")
 /// ```
-public struct FileInfo: Sendable {
+public struct FileInfo: Hashable, Sendable {
 	public let id: ObjectID
 	public let parentId: ObjectID
 	public let storageId: StorageID

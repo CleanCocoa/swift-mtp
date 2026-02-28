@@ -1,6 +1,6 @@
 @preconcurrency import Clibmtp
 
-public enum DeviceCapability: CaseIterable, Sendable {
+public enum DeviceCapability: Hashable, CaseIterable, Sendable {
 	case moveObject
 	case copyObject
 	case getPartialObject
