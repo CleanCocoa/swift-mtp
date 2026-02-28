@@ -28,12 +28,11 @@ targets: [
 
 ## Usage
 
-SwiftMTP offers an abstraction over the `libmtp` C API that makes it ergonomic to use, and avoid common pitfalls in your code base:
+SwiftMTP offers an abstraction over the `libmtp` C API that makes it ergonomic to use, and avoids common pitfalls in your code base:
 
-- `Storage` is bound to a device, so you don't need to schlep both device and storage pointers.
-- Nominal ID types prevent mixiRequest a sample memo to see what you'll receive after the session.
-
-ng up object, storage, and folder IDs at compile time.
+- `MTPSession` actor serializes all USB I/O off the main thread — libmtp's single-threaded requirement is enforced structurally.
+- `Storage` is bound to a session, so you don't need to schlep both device and storage pointers.
+- Nominal ID types prevent mixing up object, storage, and folder IDs at compile time.
 - `~Copyable` wrappers guarantee C resource cleanup — no manual `defer`/`destroy` calls.
 
 ```swift
@@ -42,45 +41,48 @@ import SwiftMTP
 try MTP.initialize()
 
 // discover and open the first device
-var raw = try Device.detect().first!
-let device = try raw.open()
+var raw = try MTPSession.detect().first!
+let session = try MTPSession(opening: &raw)
 
-// get the default storage — remembers its device
-let storage = device.defaultStorage!
+// device properties are nonisolated — no await needed
+print(session.manufacturerName ?? "unknown")
+
+// get the default storage — remembers its session
+let storage = await session.defaultStorage!
 
 // list root and find a file by name
-let root = try storage.contents()
+let root = try await storage.contents()
 for entry in root.sorted(.directoriesFirst) {
     print(entry.name, entry.isDirectory ? "dir" : "\(entry.size) bytes")
 }
 
 // resolve a path directly
-if let note = try storage.resolvePath("/Documents/note.pdf") {
+if let note = try await storage.resolvePath("/Documents/note.pdf") {
     let dest = URL(fileURLWithPath: "/tmp/note.pdf")
-    try device.download(note, to: dest) { sent, total in
+    try await session.download(note, to: dest) { sent, total in
         print("\(sent)/\(total)")
         return .continue  // return .cancel to abort
     }
 }
 
 // upload into a new folder — filename defaults to lastPathComponent
-let backup = try storage.makeDirectory(named: "Backup", in: .root)
+let backup = try await storage.makeDirectory(named: "Backup", in: .root)
 let source = URL(fileURLWithPath: "/tmp/report.pdf")
-let uploaded = try storage.upload(from: source, to: backup.folder!) { sent, total in
+let uploaded = try await storage.upload(from: source, to: backup.folder!) { sent, total in
     print("\(sent)/\(total)")
     return .continue
 }
 
 // rename, move, delete — pass FileInfo/Folder directly (or .id)
-try device.rename(uploaded, to: "final-report.pdf")
-if device.supportsCapability(.moveObject) {
-    try storage.move(uploaded, to: .root)
+try await session.rename(uploaded, to: "final-report.pdf")
+if session.supportsCapability(.moveObject) {
+    try await storage.move(uploaded, to: .root)
 }
-try device.delete(backup)
+try await session.delete(backup)
 
-// listen for events (cancellable AsyncStream)
+// listen for events (cancellable AsyncStream, nonisolated)
 let eventTask = Task.detached {
-    for await event in device.events() {
+    for await event in session.events() {
         print("Event: \(event)")
     }
     print("Event stream ended")
@@ -94,7 +96,7 @@ eventTask.cancel()
 `FileInfo` collections support enum-based sorting with full type inference:
 
 ```swift
-let entries = try storage.contents()
+let entries = try await storage.contents()
 entries.sorted(.byName)              // case-insensitive, Finder-style ("file2" < "file10")
 entries.sorted(.byNameDescending)
 entries.sorted(.bySize)
@@ -115,7 +117,7 @@ MTP.isInitialized          // true
 try MTP.initialize()       // throws MTPError.alreadyInitialized
 ```
 
-Entry points (`MTP.detectDevices()`, `Device.detect()`, `RawDevice.open()`, `Device.init(busLocation:devnum:)`) throw `.notInitialized` if the library hasn't been set up. For contexts where double-init is benign (app launch, tests), use `try? MTP.initialize()`.
+Entry points (`MTP.detectDevices()`, `MTPSession.detect()`, `MTPSession.init(opening:)`, `MTPSession.init(busLocation:devnum:)`) throw `.notInitialized` if the library hasn't been set up. For contexts where double-init is benign (app launch, tests), use `try? MTP.initialize()`.
 
 ### Error Handling
 
@@ -123,7 +125,7 @@ All fallible operations use typed throws (`throws(MTPError)`):
 
 ```swift
 do throws(MTPError) {
-    try device.delete(objectId)
+    try await session.delete(objectId)
 } catch .objectNotFound(let id) {
     // ...
 } catch .operationFailed(let message) {
@@ -138,11 +140,11 @@ do throws(MTPError) {
 | Type | Description |
 |------|-------------|
 | `MTP` | Library namespace. `initialize()`, `isInitialized`, `detectDevices()`. |
-| `Device` | Device handle wrapping `LIBMTP_mtpdevice_t`. Released on deinit. Not thread-safe. `detect()` convenience. |
-| `RawDevice` | Discovered device before opening. Call `open()` to get a `Device`. |
+| `MTPSession` | Actor wrapping a device connection. All USB I/O is serialized here. `detect()` convenience. |
+| `RawDevice` | Discovered device before opening. Pass to `MTPSession(opening:)`. |
 | `FileInfo` | Unified file/folder metadata (id, name, size, dates, isDirectory, folder). |
 | `FileInfo.SortOrder` | Enum-based sorting: `.byName`, `.bySize`, `.byDate`, `.directoriesFirst`, etc. |
-| `Storage` | Device-bound storage handle for scoped operations (contents, upload, mkdir, move). |
+| `Storage` | Session-bound storage handle for scoped operations (contents, upload, mkdir, move). |
 | `StorageInfo` | Storage pool value type (id, description, capacity, free space, usedSpace, percentFull). |
 | `ObjectID` | Nominal wrapper for MTP object IDs. `.root` for the root object. |
 | `StorageID` | Nominal wrapper for storage pool IDs. `.all` for all storages. |
@@ -174,4 +176,4 @@ Two-target SPM package (Swift 6.2, macOS 26):
 - **Clibmtp** — `.systemLibrary` wrapping `libmtp.h` via pkg-config
 - **SwiftMTP** — Pure Swift API layer with typed throws, `Sendable` value types, and automatic C memory management
 
-All public value types are `Sendable`. `Device` is a `final class` with `deinit`-based cleanup — it is **not thread-safe** (libmtp uses no locking). Internal C resource management uses `~Copyable` structs (`Upload`, `FileHandle`, `FileNode`, `FolderTree`) that guarantee cleanup via `deinit`. Implicit C contracts (memory ownership, callback lifetimes, error stack semantics) are documented in docstrings on each wrapper type. The library operates statelessly — callers manage their own caching.
+All public value types are `Sendable`. `MTPSession` is an actor that owns an internal `Device` handle — libmtp's single-threaded requirement is enforced by actor isolation rather than caller discipline. Device properties (`manufacturerName`, `modelName`, etc.) and `supportsCapability(_:)` are cached at init and `nonisolated` — no `await` needed. All USB I/O methods (`contents`, `download`, `upload`, `delete`, etc.) require `await` to cross the actor boundary. Internal C resource management uses `~Copyable` structs (`Upload`, `FileHandle`, `FileNode`, `FolderTree`) that guarantee cleanup via `deinit`. Implicit C contracts (memory ownership, callback lifetimes, error stack semantics) are documented in docstrings on each wrapper type. The library operates statelessly — callers manage their own caching.
