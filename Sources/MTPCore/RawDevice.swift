@@ -41,7 +41,7 @@ public struct RawDevice: Sendable {
 
 	package mutating func open() throws(MTPError) -> Device {
 		guard MTP.isInitialized else { throw .notInitialized }
-		guard let device = LIBMTP_Open_Raw_Device_Uncached(&cRaw) else {
+		guard let device = withSuppressedStdout({ LIBMTP_Open_Raw_Device_Uncached(&cRaw) }) else {
 			throw .connectionFailed(bus: busLocation, devnum: devnum)
 		}
 		LIBMTP_Get_Storage(device, 0)

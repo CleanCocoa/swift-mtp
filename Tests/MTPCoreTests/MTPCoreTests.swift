@@ -506,3 +506,7 @@ func `MTP.detectDevices() returns empty without device`() throws {
 	#expect(ctx.event == LIBMTP_EVENT_NONE)
 	#expect(ctx.param == 0)
 }
+
+@Test func `withSuppressedStdout returns body result`() {
+	#expect(withSuppressedStdout { 42 } == 42)
+}

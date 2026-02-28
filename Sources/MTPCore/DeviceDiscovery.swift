@@ -23,7 +23,7 @@ public enum MTP {
 		guard isInitialized else { throw .notInitialized }
 		var rawDevices: UnsafeMutablePointer<LIBMTP_raw_device_t>? = nil
 		var numDevices: CInt = 0
-		let result = LIBMTP_Detect_Raw_Devices(&rawDevices, &numDevices)
+		let result = withSuppressedStdout { LIBMTP_Detect_Raw_Devices(&rawDevices, &numDevices) }
 		defer { free(rawDevices) }
 		if result == LIBMTP_ERROR_NO_DEVICE_ATTACHED || numDevices == 0 {
 			return []

@@ -31,7 +31,7 @@ package final class Device {
 		guard MTP.isInitialized else { throw .notInitialized }
 		var rawDevices: UnsafeMutablePointer<LIBMTP_raw_device_t>? = nil
 		var numDevices: CInt = 0
-		let result = LIBMTP_Detect_Raw_Devices(&rawDevices, &numDevices)
+		let result = withSuppressedStdout { LIBMTP_Detect_Raw_Devices(&rawDevices, &numDevices) }
 		defer { free(rawDevices) }
 		if result == LIBMTP_ERROR_NO_DEVICE_ATTACHED {
 			throw .noDeviceAttached
@@ -46,7 +46,7 @@ package final class Device {
 		guard let idx = matchIndex else {
 			throw .noDeviceAttached
 		}
-		guard let device = LIBMTP_Open_Raw_Device_Uncached(&rawDevices![idx]) else {
+		guard let device = withSuppressedStdout({ LIBMTP_Open_Raw_Device_Uncached(&rawDevices![idx]) }) else {
 			throw .connectionFailed(bus: busLocation, devnum: devnum)
 		}
 		LIBMTP_Get_Storage(device, 0)
