@@ -3,6 +3,7 @@
 ## [0.6.0] — 2026-02-28
 
 ### Added
+- `ProgressAction` enum (`.continue` / `.cancel`) replacing `Bool` return from `ProgressHandler` for self-documenting transfer control; conforms to `ExpressibleByBooleanLiteral` so `return true` still works
 - `FileReference` protocol — pass `FileInfo`, `Folder`, or `ObjectID` directly to `download`, `info`, `delete`, `rename`, and `move` instead of extracting `.id`
 - `Device.events()` returning cancellable `AsyncStream<Event>` using `LIBMTP_Read_Event_Async` + poll loop
 - Dedicated `Thread` for event polling (does not occupy the cooperative thread pool)
@@ -12,6 +13,7 @@
 - `events()` stream now retains the `Device` for the stream's lifetime, preventing use-after-free if the caller drops its reference
 
 ### Changed
+- `ProgressHandler` now returns `ProgressAction` instead of `Bool`
 - `readEvent()` docstring updated to recommend `events()` as the preferred alternative
 
 ## [0.5.0] — 2026-02-28

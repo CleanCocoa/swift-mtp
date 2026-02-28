@@ -207,7 +207,7 @@ import Testing
 }
 
 @Test func `withProgressCallback non-nil handler provides pointers`() {
-	let handler: ProgressHandler = { _, _ in true }
+	let handler: ProgressHandler = { _, _ in .continue }
 	withProgressCallback(handler) { callback, context in
 		#expect(callback != nil)
 		#expect(context != nil)

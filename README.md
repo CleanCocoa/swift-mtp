@@ -59,14 +59,17 @@ if let note = try storage.resolvePath("/Documents/note.pdf") {
     let dest = URL(fileURLWithPath: "/tmp/note.pdf")
     try device.download(note, to: dest) { sent, total in
         print("\(sent)/\(total)")
-        return true  // return false to cancel
+        return .continue  // return .cancel to abort
     }
 }
 
 // upload into a new folder — filename defaults to lastPathComponent
 let backup = try storage.makeDirectory(named: "Backup", in: .root)
 let source = URL(fileURLWithPath: "/tmp/report.pdf")
-let uploaded = try storage.upload(from: source, to: backup.folder!)
+let uploaded = try storage.upload(from: source, to: backup.folder!) { sent, total in
+    print("\(sent)/\(total)")
+    return .continue
+}
 
 // rename, move, delete — pass FileInfo/Folder directly (or .id)
 try device.rename(uploaded, to: "final-report.pdf")
@@ -137,6 +140,7 @@ do throws(MTPError) {
 | `ProductID` | Nominal wrapper for USB product ID (hex description). |
 | `FileReference` | Protocol for types that identify an MTP object (`ObjectID`, `FileInfo`, `Folder`). |
 | `Event` | Event enum for device notifications (store/object added/removed, property changed). |
+| `ProgressAction` | Transfer control enum: `.continue` or `.cancel`. |
 | `MTPError` | Typed error enum covering all failure modes. |
 | `DeviceCapability` | Device capability flags (moveObject, copyObject, etc.). |
 

@@ -1,10 +1,10 @@
 import Clibmtp
 
-public typealias ProgressHandler = (_ sent: UInt64, _ total: UInt64) -> Bool
+public typealias ProgressHandler = (_ sent: UInt64, _ total: UInt64) -> ProgressAction
 
 /// Scoped bridge that lets callers pass an optional Swift progress closure to libmtp's C transfer functions.
 ///
-/// Pass `nil` to disable progress reporting. Pass a closure returning `true` to continue or `false` to cancel.
+/// Pass `nil` to disable progress reporting. Pass a closure returning `.continue` to keep transferring or `.cancel` to abort.
 ///
 /// ## C contract
 /// libmtp invokes the progress callback **synchronously** on the calling thread during transfer.
@@ -20,7 +20,7 @@ func withProgressCallback<Value>(
 	return withUnsafeMutablePointer(to: &context) { contextPtr in
 		let callback: LIBMTP_progressfunc_t = { sent, total, data in
 			let handler = data!.assumingMemoryBound(to: ProgressHandler.self).pointee
-			return handler(sent, total) ? 0 : 1
+			return handler(sent, total) == .continue ? 0 : 1
 		}
 		return body(callback, UnsafeMutableRawPointer(contextPtr))
 	}

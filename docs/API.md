@@ -48,7 +48,7 @@ let uploaded = try device.upload(
     as: "photo.jpg"
 ) { sent, total in
     print("\(sent)/\(total)")
-    return true
+    return .continue
 }
 print("Uploaded as object \(uploaded.id)")
 
@@ -399,7 +399,7 @@ public enum MTPError: Error, Equatable, Sendable
 | `.operationFailed(String)` | Error message from libmtp | Any operation that returns a non-zero result from libmtp for an unclassified reason. The string contains the libmtp error stack. |
 | `.pathNotFound(String)` | The path that was not found | Reserved for future use. Currently `resolvePath` returns `nil` for missing paths. |
 | `.moveNotSupported` | — | `move` when the device does not implement the MoveObject operation. |
-| `.cancelled` | — | `download` or `upload` when a `ProgressHandler` returned `false`. |
+| `.cancelled` | — | `download` or `upload` when a `ProgressHandler` returned `.cancel`. |
 | `.deviceDisconnected` | — | `readEvent()` when the device is disconnected or returns an unrecognized event. |
 
 ---
@@ -439,10 +439,10 @@ The version string of the underlying libmtp library.
 #### `ProgressHandler`
 
 ```swift
-public typealias ProgressHandler = (_ sent: UInt64, _ total: UInt64) -> Bool
+public typealias ProgressHandler = (_ sent: UInt64, _ total: UInt64) -> ProgressAction
 ```
 
-A closure called periodically during `upload` and `download` transfers. Return `true` to continue the transfer, or `false` to cancel it. Cancellation causes the operation to throw `MTPError.cancelled`.
+A closure called periodically during `upload` and `download` transfers. Return `.continue` to keep transferring, or `.cancel` to abort. Cancellation causes the operation to throw `MTPError.cancelled`.
 
 ---
 
@@ -653,7 +653,7 @@ print(current.name, current.size)
 
 ### Progress Tracking
 
-`ProgressHandler` is a closure `(_ sent: UInt64, _ total: UInt64) -> Bool`. Return `true` to continue or `false` to cancel. Both `upload` and `download` accept an optional handler.
+`ProgressHandler` is a closure `(_ sent: UInt64, _ total: UInt64) -> ProgressAction`. Return `.continue` to keep transferring or `.cancel` to abort. Both `upload` and `download` accept an optional handler.
 
 ```swift
 try device.upload(
@@ -664,18 +664,18 @@ try device.upload(
 ) { sent, total in
     let percent = total > 0 ? Int(sent * 100 / total) : 0
     print("Upload: \(percent)%")
-    return true
+    return .continue
 }
 ```
 
-To cancel mid-transfer, return `false`:
+To cancel mid-transfer, return `.cancel`:
 
 ```swift
 var shouldCancel = false
 
 do {
     try device.download(objectId, to: "/tmp/file.dat") { sent, total in
-        return !shouldCancel
+        return shouldCancel ? .cancel : .continue
     }
 } catch MTPError.cancelled {
     print("Transfer was cancelled")
