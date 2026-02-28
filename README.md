@@ -39,10 +39,10 @@ ng up object, storage, and folder IDs at compile time.
 ```swift
 import SwiftMTP
 
-try mtpInitialize()
+try MTP.initialize()
 
 // discover and open the first device
-var raw = try mtpDetectDevices().first!
+var raw = try Device.detect().first!
 let device = try raw.open()
 
 // get the default storage — remembers its device
@@ -106,16 +106,16 @@ entries.sorted(.directoriesFirst)    // dirs before files, then by name within e
 
 ### Initialization
 
-`mtpInitialize()` must be called exactly once before using the library. It builds libmtp's internal filetype and property mapping tables, and loads MTPZ encryption data. Calling it a second time throws `.alreadyInitialized`. The current state is inspectable via `mtpIsInitialized`:
+`MTP.initialize()` must be called exactly once before using the library. It builds libmtp's internal filetype and property mapping tables, and loads MTPZ encryption data. Calling it a second time throws `.alreadyInitialized`. The current state is inspectable via `MTP.isInitialized`:
 
 ```swift
-try mtpInitialize()       // first call succeeds
-mtpIsInitialized          // true
+try MTP.initialize()       // first call succeeds
+MTP.isInitialized          // true
 
-try mtpInitialize()       // throws MTPError.alreadyInitialized
+try MTP.initialize()       // throws MTPError.alreadyInitialized
 ```
 
-Entry points (`mtpDetectDevices()`, `RawDevice.open()`, `Device.init(busLocation:devnum:)`) throw `.notInitialized` if the library hasn't been set up. For contexts where double-init is benign (app launch, tests), use `try? mtpInitialize()`.
+Entry points (`MTP.detectDevices()`, `Device.detect()`, `RawDevice.open()`, `Device.init(busLocation:devnum:)`) throw `.notInitialized` if the library hasn't been set up. For contexts where double-init is benign (app launch, tests), use `try? MTP.initialize()`.
 
 ### Error Handling
 
@@ -137,7 +137,8 @@ do throws(MTPError) {
 
 | Type | Description |
 |------|-------------|
-| `Device` | Device handle wrapping `LIBMTP_mtpdevice_t`. Released on deinit. Not thread-safe. |
+| `MTP` | Library namespace. `initialize()`, `isInitialized`, `detectDevices()`. |
+| `Device` | Device handle wrapping `LIBMTP_mtpdevice_t`. Released on deinit. Not thread-safe. `detect()` convenience. |
 | `RawDevice` | Discovered device before opening. Call `open()` to get a `Device`. |
 | `FileInfo` | Unified file/folder metadata (id, name, size, dates, isDirectory, folder). |
 | `FileInfo.SortOrder` | Enum-based sorting: `.byName`, `.bySize`, `.byDate`, `.directoriesFirst`, etc. |

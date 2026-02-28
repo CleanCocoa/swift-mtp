@@ -25,7 +25,7 @@ public final class Device {
 	}
 
 	public init(busLocation: BusLocation, devnum: DeviceNumber) throws(MTPError) {
-		guard mtpIsInitialized else { throw .notInitialized }
+		guard MTP.isInitialized else { throw .notInitialized }
 		var rawDevices: UnsafeMutablePointer<LIBMTP_raw_device_t>? = nil
 		var numDevices: CInt = 0
 		let result = LIBMTP_Detect_Raw_Devices(&rawDevices, &numDevices)
@@ -48,6 +48,10 @@ public final class Device {
 		}
 		LIBMTP_Get_Storage(device, 0)
 		raw = device
+	}
+
+	public static func detect() throws(MTPError) -> [RawDevice] {
+		try MTP.detectDevices()
 	}
 
 	deinit {
