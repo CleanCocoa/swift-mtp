@@ -31,11 +31,7 @@ let package = Package(
             dependencies: ["MTPCore"]
         ),
         .testTarget(
-            name: "SwiftMTPTests",
-            dependencies: ["SwiftMTP"]
-        ),
-        .testTarget(
-            name: "SwiftMTPAsyncTests",
+            name: "HardwareTests",
             dependencies: ["SwiftMTPAsync"]
         ),
     ]

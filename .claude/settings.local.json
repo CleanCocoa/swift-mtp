@@ -6,7 +6,8 @@
       "Bash(MTP_DEVICE_CONNECTED=1 swift test:*)",
       "Bash(swift:*)",
       "Bash(git mv:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
