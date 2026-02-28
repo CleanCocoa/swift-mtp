@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.6.0] — 2026-02-28
+## 0.6.0 — 2026-02-28
 
 ### Added
 - `ProgressAction` enum (`.continue` / `.cancel`) replacing `Bool` return from `ProgressHandler` for self-documenting transfer control; conforms to `ExpressibleByBooleanLiteral` so `return true` still works
@@ -16,7 +16,7 @@
 - `ProgressHandler` now returns `ProgressAction` instead of `Bool`
 - `readEvent()` docstring updated to recommend `events()` as the preferred alternative
 
-## [0.5.0] — 2026-02-28
+## 0.5.0 — 2026-02-28
 
 ### Added
 - `URL` overloads for `upload(from:)` and `download(_:to:)` on both `Device` and `Storage`
@@ -26,7 +26,7 @@
 ### Changed
 - URL is now the canonical parameter type for local file paths; String overloads delegate to URL versions
 
-## [0.4.0] — 2026-02-28
+## 0.4.0 — 2026-02-28
 
 ### Added
 - `DeviceNumber` nominal wrapper type for USB device numbers (replaces raw `UInt8`)
@@ -39,7 +39,7 @@
   use `DeviceNumber` instead of raw `UInt8`
 - README updated for current type inventory, sorting API, and thread-safety notes
 
-## [0.3.0] — 2026-02-27
+## 0.3.0 — 2026-02-27
 
 ### Added
 - `FileInfo.SortOrder` enum with `.byName`, `.bySize`, `.byDate` (ascending/descending) and `.directoriesFirst`
@@ -57,7 +57,7 @@
 - `RawDevice`, `Device`, and `MTPError` use nominal USB ID types throughout
 - Internal C bridge layer uses nominal ID types consistently
 
-## [0.2.0] — 2026-02-26
+## 0.2.0 — 2026-02-26
 
 ### Added
 - `Event` enum and `readEvent()` for device event listening
@@ -77,7 +77,7 @@
 ### Fixed
 - Drain error stack between rename attempts
 
-## [0.1.0] — 2026-02-25
+## 0.1.0 — 2026-02-25
 
 ### Added
 - Initial release
