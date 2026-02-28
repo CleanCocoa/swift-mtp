@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.0 — 2026-02-28
+
+### Added
+- `MTP` enum namespace with `initialize()`, `isInitialized`, and `detectDevices()` as static members
+- `Device.detect()` convenience static func wrapping `MTP.detectDevices()`
+- `MTPError.alreadyInitialized` and `MTPError.notInitialized` cases
+- Precondition checks at entry points (`MTP.detectDevices()`, `RawDevice.open()`, `Device.init(busLocation:devnum:)`) throw `.notInitialized` if the library hasn't been set up
+
+### Changed
+- `MTP.initialize()` throws `.alreadyInitialized` on re-initialization (call-once guard via `Atomic<Bool>`)
+- Replaced free functions `mtpInitialize()`, `mtpIsInitialized`, `mtpDetectDevices()` with `MTP.*` static API
+
 ## 0.6.0 — 2026-02-28
 
 ### Added
