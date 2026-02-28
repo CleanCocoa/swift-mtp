@@ -57,7 +57,7 @@ for entry in root.sorted(.directoriesFirst) {
 // resolve a path directly
 if let note = try storage.resolvePath("/Documents/note.pdf") {
     let dest = URL(fileURLWithPath: "/tmp/note.pdf")
-    try device.download(note.id, to: dest) { sent, total in
+    try device.download(note, to: dest) { sent, total in
         print("\(sent)/\(total)")
         return true  // return false to cancel
     }
@@ -68,12 +68,12 @@ let backup = try storage.makeDirectory(named: "Backup", in: .root)
 let source = URL(fileURLWithPath: "/tmp/report.pdf")
 let uploaded = try storage.upload(from: source, to: backup.folder!)
 
-// rename, move, delete
-try device.rename(uploaded.id, to: "final-report.pdf")
+// rename, move, delete — pass FileInfo/Folder directly (or .id)
+try device.rename(uploaded, to: "final-report.pdf")
 if device.supportsCapability(.moveObject) {
-    try storage.move(uploaded.id, to: .root)
+    try storage.move(uploaded, to: .root)
 }
-try device.delete(backup.id)
+try device.delete(backup)
 
 // listen for events (cancellable AsyncStream)
 let eventTask = Task.detached {
@@ -135,6 +135,7 @@ do throws(MTPError) {
 | `DeviceNumber` | Nominal wrapper for USB device number. |
 | `VendorID` | Nominal wrapper for USB vendor ID (hex description). |
 | `ProductID` | Nominal wrapper for USB product ID (hex description). |
+| `FileReference` | Protocol for types that identify an MTP object (`ObjectID`, `FileInfo`, `Folder`). |
 | `Event` | Event enum for device notifications (store/object added/removed, property changed). |
 | `MTPError` | Typed error enum covering all failure modes. |
 | `DeviceCapability` | Device capability flags (moveObject, copyObject, etc.). |
