@@ -1,4 +1,4 @@
-import Clibmtp
+@preconcurrency import Clibmtp
 
 public typealias ProgressHandler = @Sendable (_ sent: UInt64, _ total: UInt64) -> ProgressAction
 
@@ -11,7 +11,7 @@ public typealias ProgressHandler = @Sendable (_ sent: UInt64, _ total: UInt64) -
 /// The callback pointer is never stored or invoked after the C function returns. This is what
 /// makes passing a pointer to a stack-local closure safe. The callback and context pointer are
 /// only valid for the duration of `body` — do not let them escape.
-func withProgressCallback<Value>(
+package func withProgressCallback<Value>(
 	_ handler: ProgressHandler?,
 	body: (_ callback: LIBMTP_progressfunc_t?, _ context: UnsafeMutableRawPointer?) -> Value
 ) -> Value {

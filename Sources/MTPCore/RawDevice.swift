@@ -1,4 +1,4 @@
-import Clibmtp
+@preconcurrency import Clibmtp
 
 public struct RawDevice: Sendable {
 	public let busLocation: BusLocation
@@ -39,7 +39,7 @@ public struct RawDevice: Sendable {
 		cRaw = raw
 	}
 
-	mutating func open() throws(MTPError) -> Device {
+	package mutating func open() throws(MTPError) -> Device {
 		guard MTP.isInitialized else { throw .notInitialized }
 		guard let device = LIBMTP_Open_Raw_Device_Uncached(&cRaw) else {
 			throw .connectionFailed(bus: busLocation, devnum: devnum)

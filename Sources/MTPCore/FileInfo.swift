@@ -1,4 +1,4 @@
-import Clibmtp
+@preconcurrency import Clibmtp
 import Foundation
 
 /// Metadata for a file or folder on an MTP device.

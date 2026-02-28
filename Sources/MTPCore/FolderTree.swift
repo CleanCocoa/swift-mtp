@@ -1,4 +1,4 @@
-import Clibmtp
+@preconcurrency import Clibmtp
 
 /// Wraps the root of a folder tree returned by `LIBMTP_Get_Folder_List`.
 ///

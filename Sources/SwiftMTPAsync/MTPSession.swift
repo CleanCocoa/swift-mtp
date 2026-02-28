@@ -1,4 +1,5 @@
-import Clibmtp
+@_exported public import MTPCore
+@preconcurrency import Clibmtp
 import Foundation
 
 public actor MTPSession {
@@ -44,15 +45,15 @@ extension MTPSession {
 
 extension MTPSession {
 	public nonisolated func events() -> AsyncStream<Event> {
-		SwiftMTP.eventStream(device: rawDevice, owner: self)
+		MTPCore.eventStream(device: rawDevice, owner: self)
 	}
 
 	public func readEvent() throws(MTPError) -> Event {
 		try device.readEvent()
 	}
 
-	nonisolated func testEventStream(owner: AnyObject) -> AsyncStream<Event> {
-		SwiftMTP.eventStream(device: rawDevice, owner: owner)
+	package nonisolated func testEventStream(owner: AnyObject) -> AsyncStream<Event> {
+		MTPCore.eventStream(device: rawDevice, owner: owner)
 	}
 }
 

@@ -1,8 +1,8 @@
-import Clibmtp
+@preconcurrency import Clibmtp
 import Foundation
 import Synchronization
 
-final class EventCallbackContext {
+package final class EventCallbackContext {
 	var ret: Int32 = -1
 	var event: LIBMTP_event_t = LIBMTP_EVENT_NONE
 	var param: UInt32 = 0
@@ -14,7 +14,7 @@ private final class CancellationFlag: Sendable {
 	func cancel() { _value.withLock { $0 = true } }
 }
 
-func eventStream(device: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>, owner: AnyObject? = nil) -> AsyncStream<Event> {
+package func eventStream(device: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>, owner: AnyObject? = nil) -> AsyncStream<Event> {
 	AsyncStream { continuation in
 		let cancelled = CancellationFlag()
 		continuation.onTermination = { _ in cancelled.cancel() }
