@@ -6,20 +6,35 @@ let package = Package(
     platforms: [.macOS(.v26)],
     products: [
         .library(name: "SwiftMTP", targets: ["SwiftMTP"]),
+        .library(name: "SwiftMTPAsync", targets: ["SwiftMTPAsync"]),
     ],
     targets: [
         .systemLibrary(
             name: "Clibmtp",
-            pkgConfig: "libmtp",
             providers: [.brew(["libmtp"])]
         ),
         .target(
+            name: "MTPCore",
+            dependencies: ["Clibmtp"],
+            linkerSettings: [
+                .unsafeFlags(["-L/opt/homebrew/lib"])
+            ]
+        ),
+        .target(
             name: "SwiftMTP",
-            dependencies: ["Clibmtp"]
+            dependencies: ["MTPCore"]
+        ),
+        .target(
+            name: "SwiftMTPAsync",
+            dependencies: ["MTPCore"]
         ),
         .testTarget(
-            name: "SwiftMTPTests",
-            dependencies: ["SwiftMTP"]
+            name: "MTPCoreTests",
+            dependencies: ["MTPCore"]
+        ),
+        .testTarget(
+            name: "HardwareTests",
+            dependencies: ["SwiftMTPAsync"]
         ),
     ]
 )

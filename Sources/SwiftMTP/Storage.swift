@@ -1,4 +1,4 @@
-import Clibmtp
+@_exported public import MTPCore
 import Foundation
 
 @MainActor
@@ -106,22 +106,4 @@ public struct Storage: Sendable {
 	public func move(_ file: some FileReference, to parent: Folder) throws(MTPError) {
 		try device.move(file.objectID, to: parent, storage: id)
 	}
-}
-
-extension Device {
-	public func storageInfo() -> [StorageInfo] {
-		var result: [StorageInfo] = []
-		var current = raw.pointee.storage
-		while let storage = current {
-			result.append(StorageInfo(cStorage: storage))
-			current = storage.pointee.next
-		}
-		return result
-	}
-
-	public func storages() -> [Storage] {
-		storageInfo().map { Storage(device: self, info: $0) }
-	}
-
-	public var defaultStorage: Storage? { storages().first }
 }

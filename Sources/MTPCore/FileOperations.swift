@@ -1,8 +1,8 @@
-import Clibmtp
+@preconcurrency import Clibmtp
 import Foundation
 
 extension Device {
-	public func download(
+	package func download(
 		_ id: ObjectID,
 		to url: URL,
 		progress: ProgressHandler? = nil
@@ -22,7 +22,7 @@ extension Device {
 		}
 	}
 
-	public func download(
+	package func download(
 		_ id: ObjectID,
 		to localPath: String,
 		progress: ProgressHandler? = nil
@@ -31,7 +31,7 @@ extension Device {
 	}
 
 	@discardableResult
-	public func upload(
+	package func upload(
 		from url: URL,
 		to parent: Folder,
 		storage: StorageID,
@@ -76,7 +76,7 @@ extension Device {
 	}
 
 	@discardableResult
-	public func upload(
+	package func upload(
 		from localPath: String,
 		to parent: Folder,
 		storage: StorageID,
@@ -86,7 +86,7 @@ extension Device {
 		try upload(from: URL(fileURLWithPath: localPath), to: parent, storage: storage, as: filename, progress: progress)
 	}
 
-	public func info(for id: ObjectID) throws(MTPError) -> FileInfo {
+	package func info(for id: ObjectID) throws(MTPError) -> FileInfo {
 		guard let handle = FileHandle(device: raw, id: id) else {
 			_ = drainErrorStack(raw)
 			throw MTPError.objectNotFound(id: id)
@@ -94,7 +94,7 @@ extension Device {
 		return handle.toFileInfo()
 	}
 
-	public func delete(_ id: ObjectID) throws(MTPError) {
+	package func delete(_ id: ObjectID) throws(MTPError) {
 		let ret = LIBMTP_Delete_Object(raw, id.rawValue)
 		if ret != 0 {
 			let message = drainErrorStack(raw)
@@ -103,7 +103,7 @@ extension Device {
 	}
 
 	@discardableResult
-	public func makeDirectory(named name: String, in parent: Folder, storage: StorageID) throws(MTPError) -> FileInfo {
+	package func makeDirectory(named name: String, in parent: Folder, storage: StorageID) throws(MTPError) -> FileInfo {
 		let folderId = LIBMTP_Create_Folder(raw, strdup(name), parent.id.rawValue, storage.rawValue)
 		if folderId == 0 {
 			let message = drainErrorStack(raw)
@@ -120,7 +120,7 @@ extension Device {
 		)
 	}
 
-	public func move(_ id: ObjectID, to parent: Folder, storage: StorageID) throws(MTPError) {
+	package func move(_ id: ObjectID, to parent: Folder, storage: StorageID) throws(MTPError) {
 		let ret = LIBMTP_Move_Object(raw, id.rawValue, storage.rawValue, parent.id.rawValue)
 		if ret != 0 {
 			let message = drainErrorStack(raw)
@@ -132,7 +132,7 @@ extension Device {
 	}
 
 	@discardableResult
-	public func upload(
+	package func upload(
 		from url: URL,
 		to parent: Folder,
 		storage: StorageInfo,
@@ -143,7 +143,7 @@ extension Device {
 	}
 
 	@discardableResult
-	public func upload(
+	package func upload(
 		from localPath: String,
 		to parent: Folder,
 		storage: StorageInfo,
@@ -154,16 +154,16 @@ extension Device {
 	}
 
 	@discardableResult
-	public func makeDirectory(named name: String, in parent: Folder, storage: StorageInfo) throws(MTPError) -> FileInfo
+	package func makeDirectory(named name: String, in parent: Folder, storage: StorageInfo) throws(MTPError) -> FileInfo
 	{
 		try makeDirectory(named: name, in: parent, storage: storage.id)
 	}
 
-	public func move(_ id: ObjectID, to parent: Folder, storage: StorageInfo) throws(MTPError) {
+	package func move(_ id: ObjectID, to parent: Folder, storage: StorageInfo) throws(MTPError) {
 		try move(id, to: parent, storage: storage.id)
 	}
 
-	public func download(
+	package func download(
 		_ file: some FileReference,
 		to url: URL,
 		progress: ProgressHandler? = nil
@@ -171,7 +171,7 @@ extension Device {
 		try download(file.objectID, to: url, progress: progress)
 	}
 
-	public func download(
+	package func download(
 		_ file: some FileReference,
 		to localPath: String,
 		progress: ProgressHandler? = nil
@@ -179,29 +179,29 @@ extension Device {
 		try download(file.objectID, to: localPath, progress: progress)
 	}
 
-	public func info(for file: some FileReference) throws(MTPError) -> FileInfo {
+	package func info(for file: some FileReference) throws(MTPError) -> FileInfo {
 		try info(for: file.objectID)
 	}
 
-	public func delete(_ file: some FileReference) throws(MTPError) {
+	package func delete(_ file: some FileReference) throws(MTPError) {
 		try delete(file.objectID)
 	}
 
 	@discardableResult
-	public func rename(_ file: some FileReference, to newName: String) throws(MTPError) -> FileInfo {
+	package func rename(_ file: some FileReference, to newName: String) throws(MTPError) -> FileInfo {
 		try rename(file.objectID, to: newName)
 	}
 
-	public func move(_ file: some FileReference, to parent: Folder, storage: StorageID) throws(MTPError) {
+	package func move(_ file: some FileReference, to parent: Folder, storage: StorageID) throws(MTPError) {
 		try move(file.objectID, to: parent, storage: storage)
 	}
 
-	public func move(_ file: some FileReference, to parent: Folder, storage: StorageInfo) throws(MTPError) {
+	package func move(_ file: some FileReference, to parent: Folder, storage: StorageInfo) throws(MTPError) {
 		try move(file.objectID, to: parent, storage: storage)
 	}
 
 	@discardableResult
-	public func rename(_ id: ObjectID, to newName: String) throws(MTPError) -> FileInfo {
+	package func rename(_ id: ObjectID, to newName: String) throws(MTPError) -> FileInfo {
 		if let handle = FileHandle(device: raw, id: id) {
 			let ret = handle.rename(device: raw, to: newName)
 			if ret != 0 {

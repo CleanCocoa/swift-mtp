@@ -1,4 +1,4 @@
-import Clibmtp
+@preconcurrency import Clibmtp
 
 /// Outbound file metadata for an upload. Owns a `LIBMTP_new_file_t` allocation.
 ///

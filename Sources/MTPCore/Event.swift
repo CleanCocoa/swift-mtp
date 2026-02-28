@@ -1,4 +1,4 @@
-import Clibmtp
+@preconcurrency import Clibmtp
 
 public enum Event: Sendable, Equatable {
 	case storeAdded(StorageID)
@@ -7,7 +7,7 @@ public enum Event: Sendable, Equatable {
 	case objectRemoved(ObjectID)
 	case devicePropertyChanged
 
-	init?(cEvent: LIBMTP_event_t, param: UInt32) {
+	package init?(cEvent: LIBMTP_event_t, param: UInt32) {
 		switch cEvent {
 		case LIBMTP_EVENT_STORE_ADDED: self = .storeAdded(StorageID(rawValue: param))
 		case LIBMTP_EVENT_STORE_REMOVED: self = .storeRemoved(StorageID(rawValue: param))

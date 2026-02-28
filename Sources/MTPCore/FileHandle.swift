@@ -1,4 +1,4 @@
-import Clibmtp
+@preconcurrency import Clibmtp
 
 /// Wraps a single `LIBMTP_file_struct` returned by `LIBMTP_Get_Filemetadata`.
 ///

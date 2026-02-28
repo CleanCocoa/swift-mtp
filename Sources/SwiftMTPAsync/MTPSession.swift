@@ -1,9 +1,11 @@
 @_exported public import MTPCore
+@preconcurrency import Clibmtp
 import Foundation
 
-@MainActor
-public final class Device {
-	nonisolated(unsafe) private let device: MTPCore.Device
+public actor MTPSession {
+	private let device: Device
+	nonisolated(unsafe) private let rawDevice: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>
+
 	public nonisolated let manufacturerName: String?
 	public nonisolated let modelName: String?
 	public nonisolated let serialNumber: String?
@@ -11,8 +13,9 @@ public final class Device {
 	public nonisolated let deviceVersion: String?
 	private nonisolated let capabilities: UInt64
 
-	private init(device: MTPCore.Device) {
+	private init(device: Device) {
 		self.device = device
+		self.rawDevice = device.raw
 		self.manufacturerName = device.manufacturerName
 		self.modelName = device.modelName
 		self.serialNumber = device.serialNumber
@@ -21,36 +24,40 @@ public final class Device {
 		self.capabilities = device.capabilityBitmask
 	}
 
-	public convenience init(opening raw: inout RawDevice) throws(MTPError) {
+	public init(opening raw: inout RawDevice) throws(MTPError) {
 		self.init(device: try raw.open())
 	}
 
-	public convenience init(busLocation: BusLocation, devnum: DeviceNumber) throws(MTPError) {
-		self.init(device: try MTPCore.Device(busLocation: busLocation, devnum: devnum))
+	public init(busLocation: BusLocation, devnum: DeviceNumber) throws(MTPError) {
+		self.init(device: try Device(busLocation: busLocation, devnum: devnum))
 	}
 
 	public static func detect() throws(MTPError) -> [RawDevice] {
 		try MTP.detectDevices()
 	}
+}
 
+extension MTPSession {
 	public nonisolated func supportsCapability(_ cap: DeviceCapability) -> Bool {
 		capabilities & cap.bitmask != 0
 	}
+}
 
+extension MTPSession {
 	public nonisolated func events() -> AsyncStream<Event> {
-		MTPCore.eventStream(device: device.raw, owner: self)
-	}
-
-	package nonisolated func testEventStream(owner: AnyObject) -> AsyncStream<Event> {
-		MTPCore.eventStream(device: device.raw, owner: owner)
+		MTPCore.eventStream(device: rawDevice, owner: self)
 	}
 
 	public func readEvent() throws(MTPError) -> Event {
 		try device.readEvent()
 	}
+
+	package nonisolated func testEventStream(owner: AnyObject) -> AsyncStream<Event> {
+		MTPCore.eventStream(device: rawDevice, owner: owner)
+	}
 }
 
-extension Device {
+extension MTPSession {
 	public func contents(
 		of parent: Folder = .root,
 		storage: StorageID = .all
@@ -82,7 +89,7 @@ extension Device {
 	}
 }
 
-extension Device {
+extension MTPSession {
 	public func download(
 		_ id: ObjectID,
 		to url: URL,
@@ -212,16 +219,16 @@ extension Device {
 	}
 }
 
-extension Device {
+extension MTPSession {
 	public func storageInfo() -> [StorageInfo] {
 		device.storageInfo()
 	}
 
 	public func storages() -> [Storage] {
-		device.storageInfo().map { Storage(device: self, info: $0) }
+		device.storageInfo().map { Storage(session: self, info: $0) }
 	}
 
 	public var defaultStorage: Storage? {
-		device.storageInfo().first.map { Storage(device: self, info: $0) }
+		device.storageInfo().first.map { Storage(session: self, info: $0) }
 	}
 }

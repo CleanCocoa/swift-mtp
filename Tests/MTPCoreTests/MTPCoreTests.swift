@@ -1,8 +1,8 @@
-import Clibmtp
+@preconcurrency import Clibmtp
 import Foundation
 import Testing
 
-@testable import SwiftMTP
+@testable import MTPCore
 
 @Test func `swift build imports Clibmtp`() {
 	#expect(!swiftMTPVersion.isEmpty)
@@ -505,84 +505,4 @@ func `MTP.detectDevices() returns empty without device`() throws {
 	#expect(ctx.ret == -1)
 	#expect(ctx.event == LIBMTP_EVENT_NONE)
 	#expect(ctx.param == 0)
-}
-
-@Suite(.serialized, .enabled(if: deviceConnected, "Skipping: no MTP device connected"))
-@MainActor
-struct HardwareTests {
-	@Test func `detect devices finds at least one`() throws {
-		try? MTP.initialize()
-		let devices = try MTP.detectDevices()
-		#expect(!devices.isEmpty)
-	}
-
-	@Test func `open device and read properties`() throws {
-		try? MTP.initialize()
-		let devices = try MTP.detectDevices()
-		var raw = try #require(devices.first)
-		let device = try raw.open()
-		#expect(
-			device.manufacturerName != nil || device.modelName != nil || device.serialNumber != nil
-				|| device.friendlyName != nil || device.deviceVersion != nil
-		)
-		let storages = device.storageInfo()
-		#expect(!storages.isEmpty)
-		#expect(device.defaultStorage?.id == storages.first?.id)
-	}
-
-	@Test func `list root directory`() throws {
-		try? MTP.initialize()
-		let devices = try MTP.detectDevices()
-		var raw = try #require(devices.first)
-		let device = try raw.open()
-		let entries = try device.contents()
-		#expect(!entries.isEmpty)
-		for entry in entries {
-			#expect(!entry.name.isEmpty)
-		}
-	}
-
-	@Test func `eventStream retains owner for stream lifetime`() async throws {
-		try? MTP.initialize()
-		let devices = try MTP.detectDevices()
-		var raw = try #require(devices.first)
-		let device = try raw.open()
-
-		final class Witness {}
-		weak var weakWitness: Witness?
-		var stream: AsyncStream<Event>?
-
-		do {
-			let witness = Witness()
-			weakWitness = witness
-			stream = eventStream(device: device.raw, owner: witness)
-		}
-
-		#expect(weakWitness != nil, "eventStream should retain its owner")
-
-		let s = stream!
-		stream = nil
-		let task = Task.detached { for await _ in s {} }
-		task.cancel()
-		await task.value
-	}
-
-	@Test func `events() stream can be cancelled`() async throws {
-		try? MTP.initialize()
-		let devices = try MTP.detectDevices()
-		var raw = try #require(devices.first)
-		let device = try raw.open()
-
-		let eventTask = Task.detached {
-			var count = 0
-			for await _ in device.events() {
-				count += 1
-			}
-			return count
-		}
-
-		try await Task.sleep(for: .seconds(2))
-		eventTask.cancel()
-		let _ = await eventTask.value
-	}
 }

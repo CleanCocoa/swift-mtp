@@ -1,4 +1,4 @@
-import Clibmtp
+@preconcurrency import Clibmtp
 import Synchronization
 
 public enum MTP {

@@ -1,4 +1,4 @@
-import Clibmtp
+@preconcurrency import Clibmtp
 
 public enum MTPError: Error, Equatable, Sendable {
 	case alreadyInitialized

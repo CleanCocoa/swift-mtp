@@ -1,3 +1,3 @@
-import Clibmtp
+@preconcurrency import Clibmtp
 
 public let swiftMTPVersion = String(LIBMTP_VERSION_STRING)

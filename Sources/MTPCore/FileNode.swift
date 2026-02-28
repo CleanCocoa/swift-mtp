@@ -1,4 +1,4 @@
-import Clibmtp
+@preconcurrency import Clibmtp
 
 /// Wraps a single node from a flat linked list returned by `LIBMTP_Get_Files_And_Folders`.
 ///
