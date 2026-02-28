@@ -1,6 +1,17 @@
 import Clibmtp
+import Synchronization
 
-public func mtpInitialize() {
+private let _initialized = Atomic<Bool>(false)
+
+public var mtpIsInitialized: Bool {
+	_initialized.load(ordering: .acquiring)
+}
+
+public func mtpInitialize() throws(MTPError) {
+	let (exchanged, _) = _initialized.compareExchange(
+		expected: false, desired: true, ordering: .acquiringAndReleasing
+	)
+	guard exchanged else { throw .alreadyInitialized }
 	LIBMTP_Init()
 }
 
@@ -8,6 +19,7 @@ public func mtpInitialize() {
 /// `LIBMTP_Detect_Raw_Devices` allocates a flat `malloc` array of `LIBMTP_raw_device_t`.
 /// Caller must `free()` the array pointer (not individual elements).
 public func mtpDetectDevices() throws(MTPError) -> [RawDevice] {
+	guard mtpIsInitialized else { throw .notInitialized }
 	var rawDevices: UnsafeMutablePointer<LIBMTP_raw_device_t>? = nil
 	var numDevices: CInt = 0
 	let result = LIBMTP_Detect_Raw_Devices(&rawDevices, &numDevices)

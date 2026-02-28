@@ -1,6 +1,8 @@
 import Clibmtp
 
 public enum MTPError: Error, Equatable, Sendable {
+	case alreadyInitialized
+	case notInitialized
 	case noDeviceAttached
 	case connectionFailed(bus: BusLocation, devnum: DeviceNumber)
 	case storageFull

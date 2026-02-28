@@ -9,6 +9,9 @@ import Testing
 }
 
 @Test func `MTPError is Equatable`() {
+	#expect(MTPError.alreadyInitialized == .alreadyInitialized)
+	#expect(MTPError.notInitialized == .notInitialized)
+	#expect(MTPError.alreadyInitialized != .notInitialized)
 	#expect(MTPError.noDeviceAttached == .noDeviceAttached)
 	#expect(MTPError.storageFull == .storageFull)
 	#expect(MTPError.moveNotSupported == .moveNotSupported)
@@ -20,6 +23,8 @@ import Testing
 }
 
 @Test func `MTPError is Sendable`() {
+	let _: any Sendable = MTPError.alreadyInitialized
+	let _: any Sendable = MTPError.notInitialized
 	let _: any Sendable = MTPError.noDeviceAttached
 	let _: any Sendable = MTPError.storageFull
 	let _: any Sendable = MTPError.notFileURL("https://example.com")
@@ -36,6 +41,9 @@ import Testing
 }
 
 @Test func `MTPError cases with associated values`() {
+	#expect(MTPError.alreadyInitialized == .alreadyInitialized)
+	#expect(MTPError.notInitialized == .notInitialized)
+
 	let e1 = MTPError.noDeviceAttached
 	let e2 = MTPError.connectionFailed(bus: BusLocation(rawValue: 3), devnum: DeviceNumber(rawValue: 7))
 	let e3 = MTPError.storageFull
@@ -194,9 +202,19 @@ import Testing
 	#expect(caps.count == 5)
 }
 
-@Test func `mtpInitialize is idempotent`() {
-	mtpInitialize()
-	mtpInitialize()
+@Test func `mtpInitialize succeeds on first call`() throws {
+	try? mtpInitialize()
+	#expect(mtpIsInitialized)
+}
+
+@Test func `mtpInitialize throws alreadyInitialized on second call`() {
+	try? mtpInitialize()
+	#expect(throws: MTPError.alreadyInitialized) { try mtpInitialize() }
+}
+
+@Test func `mtpIsInitialized is true after init`() {
+	try? mtpInitialize()
+	#expect(mtpIsInitialized)
 }
 
 @Test func `withProgressCallback nil handler passes nil`() {
@@ -451,7 +469,7 @@ private let deviceConnected = ProcessInfo.processInfo.environment["MTP_DEVICE_CO
 
 @Test(.disabled(if: deviceConnected, "Device is connected, detection will return results"))
 func `mtpDetectDevices returns empty without device`() throws {
-	mtpInitialize()
+	try? mtpInitialize()
 	let devices = try mtpDetectDevices()
 	#expect(devices.isEmpty)
 }
@@ -493,13 +511,13 @@ func `mtpDetectDevices returns empty without device`() throws {
 @MainActor
 struct HardwareTests {
 	@Test func `detect devices finds at least one`() throws {
-		mtpInitialize()
+		try? mtpInitialize()
 		let devices = try mtpDetectDevices()
 		#expect(!devices.isEmpty)
 	}
 
 	@Test func `open device and read properties`() throws {
-		mtpInitialize()
+		try? mtpInitialize()
 		let devices = try mtpDetectDevices()
 		var raw = try #require(devices.first)
 		let device = try raw.open()
@@ -513,7 +531,7 @@ struct HardwareTests {
 	}
 
 	@Test func `list root directory`() throws {
-		mtpInitialize()
+		try? mtpInitialize()
 		let devices = try mtpDetectDevices()
 		var raw = try #require(devices.first)
 		let device = try raw.open()
@@ -525,7 +543,7 @@ struct HardwareTests {
 	}
 
 	@Test func `eventStream retains owner for stream lifetime`() async throws {
-		mtpInitialize()
+		try? mtpInitialize()
 		let devices = try mtpDetectDevices()
 		var raw = try #require(devices.first)
 		let device = try raw.open()
@@ -550,7 +568,7 @@ struct HardwareTests {
 	}
 
 	@Test func `events() stream can be cancelled`() async throws {
-		mtpInitialize()
+		try? mtpInitialize()
 		let devices = try mtpDetectDevices()
 		var raw = try #require(devices.first)
 		let device = try raw.open()
