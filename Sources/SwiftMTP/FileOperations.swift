@@ -163,6 +163,43 @@ extension Device {
 		try move(id, to: parent, storage: storage.id)
 	}
 
+	public func download(
+		_ file: some FileReference,
+		to url: URL,
+		progress: ProgressHandler? = nil
+	) throws(MTPError) {
+		try download(file.objectID, to: url, progress: progress)
+	}
+
+	public func download(
+		_ file: some FileReference,
+		to localPath: String,
+		progress: ProgressHandler? = nil
+	) throws(MTPError) {
+		try download(file.objectID, to: localPath, progress: progress)
+	}
+
+	public func info(for file: some FileReference) throws(MTPError) -> FileInfo {
+		try info(for: file.objectID)
+	}
+
+	public func delete(_ file: some FileReference) throws(MTPError) {
+		try delete(file.objectID)
+	}
+
+	@discardableResult
+	public func rename(_ file: some FileReference, to newName: String) throws(MTPError) -> FileInfo {
+		try rename(file.objectID, to: newName)
+	}
+
+	public func move(_ file: some FileReference, to parent: Folder, storage: StorageID) throws(MTPError) {
+		try move(file.objectID, to: parent, storage: storage)
+	}
+
+	public func move(_ file: some FileReference, to parent: Folder, storage: StorageInfo) throws(MTPError) {
+		try move(file.objectID, to: parent, storage: storage)
+	}
+
 	@discardableResult
 	public func rename(_ id: ObjectID, to newName: String) throws(MTPError) -> FileInfo {
 		if let handle = FileHandle(device: raw, id: id) {

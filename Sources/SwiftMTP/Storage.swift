@@ -77,6 +77,35 @@ public struct Storage: Sendable {
 	public func move(_ objectId: ObjectID, to parent: Folder) throws(MTPError) {
 		try device.move(objectId, to: parent, storage: id)
 	}
+
+	public func download(_ file: some FileReference, to url: URL, progress: ProgressHandler? = nil) throws(MTPError) {
+		try device.download(file.objectID, to: url, progress: progress)
+	}
+
+	public func download(
+		_ file: some FileReference,
+		to localPath: String,
+		progress: ProgressHandler? = nil
+	) throws(MTPError) {
+		try device.download(file.objectID, to: localPath, progress: progress)
+	}
+
+	public func info(for file: some FileReference) throws(MTPError) -> FileInfo {
+		try device.info(for: file.objectID)
+	}
+
+	public func delete(_ file: some FileReference) throws(MTPError) {
+		try device.delete(file.objectID)
+	}
+
+	@discardableResult
+	public func rename(_ file: some FileReference, to newName: String) throws(MTPError) -> FileInfo {
+		try device.rename(file.objectID, to: newName)
+	}
+
+	public func move(_ file: some FileReference, to parent: Folder) throws(MTPError) {
+		try device.move(file.objectID, to: parent, storage: id)
+	}
 }
 
 extension Device {

@@ -456,6 +456,32 @@ func `mtpDetectDevices returns empty without device`() throws {
 	#expect(devices.isEmpty)
 }
 
+@Test func `FileInfo conforms to FileReference`() {
+	let info = FileInfo(
+		id: ObjectID(rawValue: 42),
+		parentId: ObjectID(rawValue: 0),
+		storageId: StorageID(rawValue: 1),
+		name: "test.txt",
+		size: 100,
+		modificationDate: .distantPast,
+		isDirectory: false
+	)
+	let ref: any FileReference = info
+	#expect(ref.objectID == ObjectID(rawValue: 42))
+}
+
+@Test func `Folder conforms to FileReference`() {
+	let folder = Folder(id: ObjectID(rawValue: 7))
+	let ref: any FileReference = folder
+	#expect(ref.objectID == ObjectID(rawValue: 7))
+}
+
+@Test func `ObjectID conforms to FileReference`() {
+	let id = ObjectID(rawValue: 99)
+	let ref: any FileReference = id
+	#expect(ref.objectID == ObjectID(rawValue: 99))
+}
+
 @Test func `EventCallbackContext has sentinel initial values`() {
 	let ctx = EventCallbackContext()
 	#expect(ctx.ret == -1)
