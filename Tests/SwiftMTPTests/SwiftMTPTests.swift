@@ -523,14 +523,10 @@ struct HardwareTests {
 
 	@Test func `open device and read properties`() async throws {
 		let session = HardwareTests.shared
-		let manufacturer = await session.manufacturerName
-		let model = await session.modelName
-		let serial = await session.serialNumber
-		let friendly = await session.friendlyName
-		let version = await session.deviceVersion
 		#expect(
-			manufacturer != nil || model != nil || serial != nil
-				|| friendly != nil || version != nil
+			session.manufacturerName != nil || session.modelName != nil
+				|| session.serialNumber != nil
+				|| session.friendlyName != nil || session.deviceVersion != nil
 		)
 		let storages = await session.storageInfo()
 		#expect(!storages.isEmpty)

@@ -5,14 +5,30 @@ public actor MTPSession {
 	private let device: Device
 	nonisolated(unsafe) private let rawDevice: UnsafeMutablePointer<LIBMTP_mtpdevice_struct>
 
-	public init(opening raw: inout RawDevice) throws(MTPError) {
-		self.device = try raw.open()
+	public nonisolated let manufacturerName: String?
+	public nonisolated let modelName: String?
+	public nonisolated let serialNumber: String?
+	public nonisolated let friendlyName: String?
+	public nonisolated let deviceVersion: String?
+	private nonisolated let capabilities: UInt64
+
+	private init(device: Device) {
+		self.device = device
 		self.rawDevice = device.raw
+		self.manufacturerName = device.manufacturerName
+		self.modelName = device.modelName
+		self.serialNumber = device.serialNumber
+		self.friendlyName = device.friendlyName
+		self.deviceVersion = device.deviceVersion
+		self.capabilities = device.capabilityBitmask
+	}
+
+	public init(opening raw: inout RawDevice) throws(MTPError) {
+		self.init(device: try raw.open())
 	}
 
 	public init(busLocation: BusLocation, devnum: DeviceNumber) throws(MTPError) {
-		self.device = try Device(busLocation: busLocation, devnum: devnum)
-		self.rawDevice = device.raw
+		self.init(device: try Device(busLocation: busLocation, devnum: devnum))
 	}
 
 	public static func detect() throws(MTPError) -> [RawDevice] {
@@ -21,14 +37,8 @@ public actor MTPSession {
 }
 
 extension MTPSession {
-	public var manufacturerName: String? { device.manufacturerName }
-	public var modelName: String? { device.modelName }
-	public var serialNumber: String? { device.serialNumber }
-	public var friendlyName: String? { device.friendlyName }
-	public var deviceVersion: String? { device.deviceVersion }
-
-	public func supportsCapability(_ cap: DeviceCapability) -> Bool {
-		device.supportsCapability(cap)
+	public nonisolated func supportsCapability(_ cap: DeviceCapability) -> Bool {
+		capabilities & cap.bitmask != 0
 	}
 }
 

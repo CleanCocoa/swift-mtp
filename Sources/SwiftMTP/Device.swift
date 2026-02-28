@@ -1,11 +1,23 @@
 import Clibmtp
 
-public enum DeviceCapability: Sendable {
+public enum DeviceCapability: CaseIterable, Sendable {
 	case moveObject
 	case copyObject
 	case getPartialObject
 	case sendPartialObject
 	case editObjects
+
+	var cValue: LIBMTP_devicecap_t {
+		switch self {
+		case .moveObject: LIBMTP_DEVICECAP_MoveObject
+		case .copyObject: LIBMTP_DEVICECAP_CopyObject
+		case .getPartialObject: LIBMTP_DEVICECAP_GetPartialObject
+		case .sendPartialObject: LIBMTP_DEVICECAP_SendPartialObject
+		case .editObjects: LIBMTP_DEVICECAP_EditObjects
+		}
+	}
+
+	var bitmask: UInt64 { 1 << cValue.rawValue }
 }
 
 final class Device {
@@ -74,15 +86,13 @@ final class Device {
 		return mtpEvent
 	}
 
-	func supportsCapability(_ cap: DeviceCapability) -> Bool {
-		let cCap: LIBMTP_devicecap_t =
-			switch cap {
-			case .moveObject: LIBMTP_DEVICECAP_MoveObject
-			case .copyObject: LIBMTP_DEVICECAP_CopyObject
-			case .getPartialObject: LIBMTP_DEVICECAP_GetPartialObject
-			case .sendPartialObject: LIBMTP_DEVICECAP_SendPartialObject
-			case .editObjects: LIBMTP_DEVICECAP_EditObjects
+	var capabilityBitmask: UInt64 {
+		var mask: UInt64 = 0
+		for cap in DeviceCapability.allCases {
+			if LIBMTP_Check_Capability(raw, cap.cValue) != 0 {
+				mask |= cap.bitmask
 			}
-		return LIBMTP_Check_Capability(raw, cCap) != 0
+		}
+		return mask
 	}
 }
