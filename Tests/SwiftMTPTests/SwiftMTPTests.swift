@@ -508,34 +508,39 @@ func `MTP.detectDevices() returns empty without device`() throws {
 }
 
 @Suite(.serialized, .enabled(if: deviceConnected, "Skipping: no MTP device connected"))
-@MainActor
 struct HardwareTests {
 	@Test func `detect devices finds at least one`() throws {
 		try? MTP.initialize()
-		let devices = try MTP.detectDevices()
+		let devices = try MTPSession.detect()
 		#expect(!devices.isEmpty)
 	}
 
-	@Test func `open device and read properties`() throws {
+	@Test func `open device and read properties`() async throws {
 		try? MTP.initialize()
-		let devices = try MTP.detectDevices()
+		let devices = try MTPSession.detect()
 		var raw = try #require(devices.first)
-		let device = try raw.open()
+		let session = try MTPSession(opening: &raw)
+		let manufacturer = await session.manufacturerName
+		let model = await session.modelName
+		let serial = await session.serialNumber
+		let friendly = await session.friendlyName
+		let version = await session.deviceVersion
 		#expect(
-			device.manufacturerName != nil || device.modelName != nil || device.serialNumber != nil
-				|| device.friendlyName != nil || device.deviceVersion != nil
+			manufacturer != nil || model != nil || serial != nil
+				|| friendly != nil || version != nil
 		)
-		let storages = device.storageInfo()
+		let storages = await session.storageInfo()
 		#expect(!storages.isEmpty)
-		#expect(device.defaultStorage?.id == storages.first?.id)
+		let defaultStorage = await session.defaultStorage
+		#expect(defaultStorage?.id == storages.first?.id)
 	}
 
-	@Test func `list root directory`() throws {
+	@Test func `list root directory`() async throws {
 		try? MTP.initialize()
-		let devices = try MTP.detectDevices()
+		let devices = try MTPSession.detect()
 		var raw = try #require(devices.first)
-		let device = try raw.open()
-		let entries = try device.contents()
+		let session = try MTPSession(opening: &raw)
+		let entries = try await session.contents()
 		#expect(!entries.isEmpty)
 		for entry in entries {
 			#expect(!entry.name.isEmpty)
@@ -544,9 +549,9 @@ struct HardwareTests {
 
 	@Test func `eventStream retains owner for stream lifetime`() async throws {
 		try? MTP.initialize()
-		let devices = try MTP.detectDevices()
+		let devices = try MTPSession.detect()
 		var raw = try #require(devices.first)
-		let device = try raw.open()
+		let session = try MTPSession(opening: &raw)
 
 		final class Witness {}
 		weak var weakWitness: Witness?
@@ -555,7 +560,7 @@ struct HardwareTests {
 		do {
 			let witness = Witness()
 			weakWitness = witness
-			stream = eventStream(device: device.raw, owner: witness)
+			stream = session.testEventStream(owner: witness)
 		}
 
 		#expect(weakWitness != nil, "eventStream should retain its owner")
@@ -569,13 +574,13 @@ struct HardwareTests {
 
 	@Test func `events() stream can be cancelled`() async throws {
 		try? MTP.initialize()
-		let devices = try MTP.detectDevices()
+		let devices = try MTPSession.detect()
 		var raw = try #require(devices.first)
-		let device = try raw.open()
+		let session = try MTPSession(opening: &raw)
 
 		let eventTask = Task.detached {
 			var count = 0
-			for await _ in device.events() {
+			for await _ in session.events() {
 				count += 1
 			}
 			return count
