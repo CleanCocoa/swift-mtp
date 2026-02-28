@@ -11,6 +11,7 @@ let package = Package(
     targets: [
         .systemLibrary(
             name: "Clibmtp",
+            pkgConfig: "libmtp",
             providers: [.brew(["libmtp"])]
         ),
         .target(
