@@ -21,6 +21,5 @@ jobs:
       - name: Build
         run: swift build
 
-      # Tests require macOS 26 runtime; enable when runners are available
-      # - name: Test
-      #   run: swift test --filter MTPCoreTests
+      - name: Test
+        run: swift test --filter MTPCoreTests

@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "SwiftMTP",
-    platforms: [.macOS(.v26)],
+    platforms: [.macOS(.v15)],
     products: [
         .library(name: "SwiftMTP", targets: ["SwiftMTP"]),
         .library(name: "SwiftMTPAsync", targets: ["SwiftMTPAsync"]),
