@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  build-and-test:
+  build:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
@@ -21,5 +21,6 @@ jobs:
       - name: Build
         run: swift build
 
-      - name: Test
-        run: swift test --filter MTPCoreTests
+      # Tests require macOS 26 runtime; enable when runners are available
+      # - name: Test
+      #   run: swift test --filter MTPCoreTests
