@@ -1,4 +1,10 @@
+#if canImport(Darwin)
 import Darwin
+#elseif canImport(Glibc)
+@preconcurrency import Glibc
+#elseif canImport(Musl)
+@preconcurrency import Musl
+#endif
 
 package func withSuppressedStdout<T>(_ body: () -> T) -> T {
 	fflush(stdout)
