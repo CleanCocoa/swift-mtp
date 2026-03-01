@@ -1,4 +1,9 @@
 @preconcurrency import Clibmtp
+#if canImport(Glibc)
+import Glibc
+#elseif canImport(Musl)
+import Musl
+#endif
 
 public enum DeviceCapability: Hashable, CaseIterable, Sendable {
 	case moveObject

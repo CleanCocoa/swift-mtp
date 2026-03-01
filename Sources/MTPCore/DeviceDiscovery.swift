@@ -1,4 +1,9 @@
 @preconcurrency import Clibmtp
+#if canImport(Glibc)
+import Glibc
+#elseif canImport(Musl)
+import Musl
+#endif
 import Synchronization
 
 public enum MTP {
