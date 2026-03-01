@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.11.0 — 2026-03-01
+
+### Added
+- Linux support: conditional Glibc/Musl imports for cross-platform compilation
+- Linux CI job using `swift:6.2-noble` container
+- `apt` package provider (`libmtp-dev`) in Package.swift
+
+### Changed
+- Homebrew linker flags gated to macOS only via `#if os(macOS)`
+
 ## 0.10.0 — 2026-03-01
 
 ### Changed
