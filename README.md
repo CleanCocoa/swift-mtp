@@ -1,5 +1,9 @@
 # SwiftMTP
 
+[![Codeberg](https://img.shields.io/badge/Codeberg-mirror-2185D0?logo=codeberg)](https://codeberg.org/ctietze/swift-mtp)
+[![macOS 26+](https://img.shields.io/badge/macOS-26%2B-blue)](#)
+[![Swift 6.2](https://img.shields.io/badge/Swift-6.2-F05138?logo=swift&logoColor=white)](#)
+
 Swift wrapper around [libmtp](https://github.com/libmtp/libmtp) for MTP device access on macOS. Provides device discovery, file management (list, upload, download, delete, rename, move, mkdir), sorting, and storage inspection using libmtp's uncached mode with no internal caching.
 
 ## Installation
