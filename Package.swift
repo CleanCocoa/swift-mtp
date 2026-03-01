@@ -1,6 +1,12 @@
 // swift-tools-version: 6.2
 import PackageDescription
 
+#if os(macOS)
+let linkerSettings: [LinkerSetting] = [.unsafeFlags(["-L/opt/homebrew/lib"])]
+#else
+let linkerSettings: [LinkerSetting] = []
+#endif
+
 let package = Package(
     name: "SwiftMTP",
     platforms: [.macOS(.v15)],
@@ -12,14 +18,12 @@ let package = Package(
         .systemLibrary(
             name: "Clibmtp",
             pkgConfig: "libmtp",
-            providers: [.brew(["libmtp"])]
+            providers: [.brew(["libmtp"]), .apt(["libmtp-dev"])]
         ),
         .target(
             name: "MTPCore",
             dependencies: ["Clibmtp"],
-            linkerSettings: [
-                .unsafeFlags(["-L/opt/homebrew/lib"])
-            ]
+            linkerSettings: linkerSettings
         ),
         .target(
             name: "SwiftMTP",

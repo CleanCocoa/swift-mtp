@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  build-and-test:
+  build-and-test-macos:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
@@ -17,6 +17,21 @@ jobs:
           xcode-version: "26.0"
 
       - run: brew install pkg-config libmtp
+
+      - name: Build
+        run: swift build
+
+      - name: Test
+        run: swift test --filter MTPCoreTests
+
+  build-and-test-linux:
+    runs-on: ubuntu-24.04
+    container: swift:6.2-noble
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install libmtp
+        run: apt-get update && apt-get install -y libmtp-dev pkg-config
 
       - name: Build
         run: swift build
