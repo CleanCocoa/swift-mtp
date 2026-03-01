@@ -16,7 +16,7 @@ jobs:
         with:
           xcode-version: "26.0"
 
-      - run: brew install libmtp
+      - run: brew install pkg-config libmtp
 
       - name: Build
         run: swift build
