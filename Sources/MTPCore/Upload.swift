@@ -1,4 +1,9 @@
 @preconcurrency import Clibmtp
+#if canImport(Glibc)
+import Glibc
+#elseif canImport(Musl)
+import Musl
+#endif
 
 /// Outbound file metadata for an upload. Owns a `LIBMTP_new_file_t` allocation.
 ///

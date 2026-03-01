@@ -1,5 +1,10 @@
 @preconcurrency import Clibmtp
 import Foundation
+#if canImport(Glibc)
+import Glibc
+#elseif canImport(Musl)
+import Musl
+#endif
 
 extension Device {
 	package func download(
