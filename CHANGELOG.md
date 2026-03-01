@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.0 — 2026-03-01
+
+### Changed
+- Lowered deployment target from macOS 26 to macOS 15
+- Added GitHub Actions CI workflow (build and test on macos-15 with Xcode 26)
+
 ## 0.9.1 — 2026-02-28
 
 ### Added
