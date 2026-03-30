@@ -40,12 +40,13 @@ struct FolderTree: ~Copyable {
 }
 
 private func _collectAllFolderIds(_ folder: UnsafeMutablePointer<LIBMTP_folder_struct>, into ids: inout Set<ObjectID>) {
-	ids.insert(ObjectID(rawValue: folder.pointee.folder_id))
-	if let child = folder.pointee.child {
-		_collectAllFolderIds(child, into: &ids)
-	}
-	if let sibling = folder.pointee.sibling {
-		_collectAllFolderIds(sibling, into: &ids)
+	var current: UnsafeMutablePointer<LIBMTP_folder_struct>? = folder
+	while let node = current {
+		ids.insert(ObjectID(rawValue: node.pointee.folder_id))
+		if let child = node.pointee.child {
+			_collectAllFolderIds(child, into: &ids)
+		}
+		current = node.pointee.sibling
 	}
 }
 
@@ -55,14 +56,15 @@ private func _collectChildFolders(
 	results: inout [FileInfo],
 	synthIds: inout Set<ObjectID>
 ) {
-	if folder.pointee.parent_id == parentId.rawValue {
-		results.append(FileInfo(cFolder: folder))
-		synthIds.insert(ObjectID(rawValue: folder.pointee.folder_id))
-	}
-	if let child = folder.pointee.child {
-		_collectChildFolders(child, parentId: parentId, results: &results, synthIds: &synthIds)
-	}
-	if let sibling = folder.pointee.sibling {
-		_collectChildFolders(sibling, parentId: parentId, results: &results, synthIds: &synthIds)
+	var current: UnsafeMutablePointer<LIBMTP_folder_struct>? = folder
+	while let node = current {
+		if node.pointee.parent_id == parentId.rawValue {
+			results.append(FileInfo(cFolder: node))
+			synthIds.insert(ObjectID(rawValue: node.pointee.folder_id))
+		}
+		if let child = node.pointee.child {
+			_collectChildFolders(child, parentId: parentId, results: &results, synthIds: &synthIds)
+		}
+		current = node.pointee.sibling
 	}
 }
