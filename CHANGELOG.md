@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.11.1 — 2026-03-30
+
+### Added
+- `/release` skill for tagged releases with changelog
+
+### Fixed
+- Iterate sibling chains to prevent stack overflow in folder tree traversal
+
 ## 0.11.0 — 2026-03-01
 
 ### Added
