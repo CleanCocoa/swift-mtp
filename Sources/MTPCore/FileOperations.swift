@@ -56,11 +56,13 @@ extension Device {
 			}
 		}()
 		let fileSize = (attrs[.size] as? UInt64) ?? 0
+		let modDate = (attrs[.modificationDate] as? Date) ?? Date()
 
 		guard
 			let upload = Upload(
 				filename: resolvedFilename,
 				filesize: fileSize,
+				modificationDate: time_t(modDate.timeIntervalSince1970),
 				parent: parent,
 				storage: storage
 			)
