@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.12.0 — 2026-04-10
+
+### Fixed
+- Set source file modification date during upload (was always Unix epoch 1970-01-01)
+
 ## 0.11.1 — 2026-03-30
 
 ### Added
